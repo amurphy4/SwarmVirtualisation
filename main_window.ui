@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>720</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Swarm Virtualisation</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="locale">
+    <locale language="English" country="UnitedKingdom"/>
+   </property>
+   <layout class="QGridLayout" name="gridLayout" rowstretch="4,1" columnstretch="4,0,1">
+    <item row="0" column="0">
+     <widget class="QGroupBox" name="groupBox_3">
+      <property name="title">
+       <string>Camera</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QLabel" name="camera_label">
+         <property name="text">
+          <string>Video from tracking system</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="0" column="1" colspan="2">
+     <widget class="QGroupBox" name="bots_groupbox">
+      <property name="title">
+       <string>Active Bots</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <widget class="QTableWidget" name="bots_table"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QGroupBox" name="console_groupbox">
+      <property name="title">
+       <string>Console Output</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QPlainTextEdit" name="txt_console_output">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="acceptDrops">
+          <bool>false</bool>
+         </property>
+         <property name="plainText">
+          <string/>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::NoTextInteraction</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="2">
+     <widget class="QGroupBox" name="options_groupbox">
+      <property name="title">
+       <string>Sensor/Actuator Options</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QPushButton" name="btn_add_definition">
+         <property name="text">
+          <string>Add Definition</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_edit_definition">
+         <property name="text">
+          <string>Edit Definitions</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_remove_definition">
+         <property name="text">
+          <string>Remove Definitions</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <widget class="QMenu" name="menuSwarm_Virtualisation">
+     <property name="title">
+      <string>Swarm Virtualisation</string>
+     </property>
+     <addaction name="actionStart"/>
+     <addaction name="actionStop"/>
+    </widget>
+    <widget class="QMenu" name="menuSwarm_Tracking">
+     <property name="title">
+      <string>Swarm Tracking</string>
+     </property>
+     <addaction name="actionStart_2"/>
+     <addaction name="actionStop_2"/>
+    </widget>
+    <addaction name="menuSwarm_Virtualisation"/>
+    <addaction name="menuSwarm_Tracking"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit_2"/>
+   </widget>
+   <widget class="QMenu" name="menuDefinitions">
+    <property name="title">
+     <string>Definitions</string>
+    </property>
+    <addaction name="actionAdd_Definition"/>
+    <addaction name="actionEdit_Definitions"/>
+    <addaction name="actionRemove_Definitions"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuDefinitions"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+  <action name="actionStart">
+   <property name="text">
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="text">
+    <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionStart_2">
+   <property name="text">
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionStop_2">
+   <property name="text">
+    <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionQuit_2">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+  <action name="actionAdd_Definition">
+   <property name="text">
+    <string>Add Definition</string>
+   </property>
+  </action>
+  <action name="actionEdit_Definitions">
+   <property name="text">
+    <string>Edit Definitions</string>
+   </property>
+  </action>
+  <action name="actionRemove_Definitions">
+   <property name="text">
+    <string>Remove Definitions</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
