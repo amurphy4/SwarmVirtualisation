@@ -1,6 +1,4 @@
-from enum import Enum
-
-class ActuatorTypes(Enum):
+class ActuatorTypes:
 
     # Current actuator types available
     GRABBER = "Picks up items in the virtual environment"

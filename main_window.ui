@@ -27,7 +27,7 @@
        <item>
         <widget class="QLabel" name="camera_label">
          <property name="text">
-          <string>Video from tracking system</string>
+          <string>Loading video from SwarmTracking...</string>
          </property>
         </widget>
        </item>

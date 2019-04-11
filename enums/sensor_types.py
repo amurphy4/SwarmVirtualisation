@@ -1,6 +1,4 @@
-from enum import Enum
-
-class SensorTypes(Enum):
+class SensorTypes:
 
     # Current sensor types available
     CONE = "Cone with radius, tangent and angle offset variables from centre of bot, sensing within cone"
