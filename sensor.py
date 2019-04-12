@@ -17,7 +17,7 @@ class Sensor(VirtualObject):
         self.__angle_offset = angle_offset
         self.__tangent = tangent
 
-        self.__is_visible = False
+        self.__is_visible = True
 
     def get_range(self):
         return self.__range

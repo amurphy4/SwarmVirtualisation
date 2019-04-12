@@ -130,8 +130,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
-       #print(data)
-       pass
+       print(data)
+       #pass
 
     def simulator_data(self):
         return self.__bots, self.__environment, self.__frame

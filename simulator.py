@@ -57,14 +57,15 @@ class Simulator():
         
         in_range = False
         for point in points:
-            a = numpy.array((point[0], point[1]))
+            a = numpy.array((point[1], point[0]))
             b = numpy.array((bot.get_centre().x, bot.get_centre().y))
             euclid = numpy.linalg.norm(a - b)
             d = math.sqrt(euclid)
-            print(d)
-            print("Euclidean: {0}".format(numpy.linalg.norm(numpy.array((point[0], point[1], 0)) - numpy.array((bot.get_centre().x, bot.get_centre().y, 0)))))
-            print("({0}, {1}) - ({2}, {3}))".format(point[0], point[1], bot.get_centre().x, bot.get_centre().y))
-            if (d <= sensor.get_radius()):
+            #print(euclid)
+            #print(d)
+            #print("Euclidean: {0}".format(numpy.linalg.norm(numpy.array((point[0], point[1], 0)) - numpy.array((bot.get_centre().x, bot.get_centre().y, 0)))))
+            #print("({0}, {1}) - ({2}, {3}))".format(point[1], point[0], bot.get_centre().x, bot.get_centre().y))
+            if (euclid <= sensor.get_radius()):
                 in_range = True
                 break;
 
@@ -99,7 +100,7 @@ class Simulator():
                         except AttributeError:
                             break;
 
-                        print(in_range)
+                        #print(in_range)
 
                         if in_range:
                             # Sensor detected something, log this to be returned at the end of the tick
