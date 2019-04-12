@@ -1,5 +1,5 @@
 ### Python libraries ###
-import sys, copy
+import sys, numpy, math
 
 ### OpenCV 4.0 required - pip install opencv-contrib ###
 import cv2
@@ -17,6 +17,7 @@ from enums import *
 from environment import *
 from advanced_bot import *
 from sensor import *
+from simulator import *
 
 qt_creator_file = "main_window.ui"
 
@@ -30,12 +31,15 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         self.__tc = TrackingController()
+        self.__simulator = Simulator()
 
         # Simulation objects
         self.__bots = []
         self.__sensors = []
         self.__actuators = []
         self.__environment = []
+
+        self.__frame = None
 
         # Connect signal for callback - kick back to GUI thread
         self.connect(self, SIGNAL("tracking_callback"), self.tracking_handler)
@@ -49,12 +53,15 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         self.__sensors.append(sensor)
 
         self.start_tracking()
+        self.start_virtualisation()
 
     def tracking_callback(self, bots, frame):
         # Emit signal for callback - kick back to GUI thread
         self.emit(SIGNAL("tracking_callback"), bots, frame)
 
     def tracking_handler(self, bots, frame):
+        self.__frame = frame
+        
         # Update bots with new positions etc.
         for bot in bots:
 
@@ -92,7 +99,7 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         # Add environment objects to overlay
         overlay = frame.copy()
         overlay = cv2.circle(overlay, self.__environment[0].get_position(), self.__environment[0].get_radius(), (0, 255, 0), -1)
-
+        
         # Add sensors to overlay
         for bot in self.__bots:
             for sensor in bot.get_sensors():
@@ -121,21 +128,30 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         # Output information to the GUI console
         self.txt_console_output.appendPlainText(message)
 
-    def virtualisation_callback(self):
+    def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
+       #print(data)
        pass
+
+    def simulator_data(self):
+        return self.__bots, self.__environment, self.__frame
 
     def start_virtualisation(self):
         self.output_to_console("Starting sensor and actuator virtualisation")
 
         # Set virtualisation callback function
+        self.__simulator.set_callback(self.virtualisation_callback)
+
+        self.__simulator.set_data_method(self.simulator_data)
 
         # Start virtualisation thread
+        self.__simulator.start()
 
     def stop_virtualisation(self):
         self.output_to_console("Stopping sensor and actuator virtualisation")
 
         # Stop virtualisation thread
+        self.__simulator.stop()
 
     def start_tracking(self):
         self.output_to_console("Starting swarm tracking")

@@ -13,6 +13,7 @@ class Environment(VirtualObject):
 
         self.__position = position
         self.__radius = radius
+        self.__is_visible = False
 
     def get_position(self):
         return self.__position
@@ -25,3 +26,9 @@ class Environment(VirtualObject):
 
     def set_radius(self, radius):
         self.__radius = radius
+
+    def get_is_visible(self):
+        return self.__is_visible
+
+    def set_is_visible(self, is_visible):
+        self.__is_visible = is_visible
