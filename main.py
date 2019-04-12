@@ -1,12 +1,22 @@
-import sys, cv2
+### Python libraries ###
+import sys, copy
 
+### OpenCV 4.0 required - pip install opencv-contrib ###
+import cv2
+
+### SwarmTracking module required - https://github.com/amurphy4/SwarmTracking ###
 from SwarmTracking import TrackingController
+
+### PyQt4 modules required - sudo apt-get install python-qt4 ###
 from PyQt4 import uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+### Application specific classes ###
 from enums import *
 from environment import *
+from advanced_bot import *
+from sensor import *
 
 qt_creator_file = "main_window.ui"
 
@@ -31,8 +41,12 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         self.connect(self, SIGNAL("tracking_callback"), self.tracking_handler)
 
         # Create testing environment objects
-        obj = Environment("food", EnvironmentTypes.GOAL, (300, 300), 10)
+        obj = Environment("food", EnvironmentTypes.GOAL, (1280, 550), 10)
         self.__environment.append(obj)
+
+        # Create testing sensor objects
+        sensor = Sensor("food_sensor", SensorTypes.CIRCLE, radius=50)
+        self.__sensors.append(sensor)
 
         self.start_tracking()
 
@@ -43,14 +57,53 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
     def tracking_handler(self, bots, frame):
         # Update bots with new positions etc.
         for bot in bots:
+
+            # Reset bot_found flag to check if the bot exists in our environment yet
+            bot_found = False
+            
             for advanced_bot in self.__bots:
-                if bot.get_id == advanced_bot.get_id:
+                # Loop over bots in our environment searching for the bot to update
+                if bot.get_id() == advanced_bot.get_id():
                     # This is the bot that needs updating
-                    advanced_bot.set_corners(bot.get_corners)
+                    tr, tl, bl, br = bot.get_corners()
+                    advanced_bot.set_corners(tr, tl, bl, br)
+
+                    # We found the bot, no need to add it to the list
+                    bot_found = True
+
+            if not bot_found:
+                # We didn't find the bot - create a new one in our environment
+                new_bot = Bot(bot)
+
+                # Add all the sensors <-- testing purposes only
+                new_bot.add_sensor(self.__sensors[0].copy())
+
+                # Set sensor for bot 5 to be visible
+                if new_bot.get_id() == 5:
+                    new_bot.get_sensors()[0].set_is_visible(True)
+                    self.output_to_console('Sensor "{0}" set to visible'.format(new_bot.get_sensors()[0].get_name()))
+
+                # We've created a bot! Add it to our environment!
+                self.__bots.append(new_bot)
+                self.output_to_console("Discovered bot with ID: {0} at ({1}, {2}). Registering data.".format(new_bot.get_id(), new_bot.get_centre().x, new_bot.get_centre().y))
+                self.output_to_console('Added sensor "{0}" to bot with ID: {1}'.format(self.__sensors[0].get_name(), new_bot.get_id()))
 
         # Augment frame before converting
-        frame = cv2.circle(frame, self.__environment[0].get_position(), self.__environment[0].get_radius(), (0, 255, 0), -1)
+        # Add environment objects to overlay
+        overlay = frame.copy()
+        overlay = cv2.circle(overlay, self.__environment[0].get_position(), self.__environment[0].get_radius(), (0, 255, 0), -1)
 
+        # Add sensors to overlay
+        for bot in self.__bots:
+            for sensor in bot.get_sensors():
+                if sensor.get_is_visible():
+                    if sensor.get_sub_type() == SensorTypes.CIRCLE:
+                        cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
+
+        # Transparency for overlaid augments
+        alpha = 0.3
+        frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+        
         # Convert frame and show in GUI
         self.set_camera_frame(frame)
 

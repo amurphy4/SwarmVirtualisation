@@ -5,7 +5,7 @@ class Actuator(VirtualObject):
 
     def __init__(self, actuator_type, capacity=None):
 
-        super().__init__(self)
+        VirtualObject.__init__(self)
 
         self.set_object_type(VirtualObjectTypes.ACTUATOR)
 

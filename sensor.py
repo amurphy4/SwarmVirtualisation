@@ -1,11 +1,11 @@
 from virtual_object import *
-from enums.virtual_object import *
+from enums import *
 
 class Sensor(VirtualObject):
 
     def __init__(self, name, sensor_type, _range=None, radius=None, angle_offset=None, tangent=None):
 
-        super().__init__(self, name)
+        VirtualObject.__init__(self, name)
 
         self.set_object_type(VirtualObjectTypes.SENSOR)
 
@@ -16,6 +16,8 @@ class Sensor(VirtualObject):
         self.__radius = radius
         self.__angle_offset = angle_offset
         self.__tangent = tangent
+
+        self.__is_visible = False
 
     def get_range(self):
         return self.__range
@@ -40,3 +42,13 @@ class Sensor(VirtualObject):
 
     def set_tangent(self, tangent):
         self.__tangent = tangent
+
+    def get_is_visible(self):
+        return self.__is_visible
+
+    def set_is_visible(self, is_visible):
+        self.__is_visible = is_visible
+
+    def copy(self):
+        copy = Sensor(self.get_name(), self.get_sub_type(), self.get_range(), self.get_radius(), self.get_angle_offset(), self.get_tangent())
+        return copy

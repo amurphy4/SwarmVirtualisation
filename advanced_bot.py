@@ -1,4 +1,4 @@
-from SwarmTracking import Bot as B
+from SwarmTracking.objects import Bot as B
 
 class Bot(B):
 
@@ -7,7 +7,7 @@ class Bot(B):
         tl, tr, br, bl = bot.get_corners()
         bot_id = bot.get_id()
         
-        super().__init__(self, tl, tr, br, bl, bot_id)
+        B.__init__(self, tl, tr, br, bl, bot_id)
 
         self.__sensors = []
         self.__actuators = []
