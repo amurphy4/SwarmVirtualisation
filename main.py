@@ -41,6 +41,9 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
         self.__frame = None
 
+        self.__tag_offset = 45
+        self.__tc.set_tag_offset(self.__tag_offset)
+
         # Connect signal for callback - kick back to GUI thread
         self.connect(self, SIGNAL("tracking_callback"), self.tracking_handler)
 
@@ -50,6 +53,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
         # Create testing sensor objects
         sensor = Sensor("food_sensor", SensorTypes.CIRCLE, radius=50)
+        self.__sensors.append(sensor)
+        sensor = Sensor("test_sensor", SensorTypes.CONE, radius=50, angle_offset=30)
         self.__sensors.append(sensor)
 
         self.start_tracking()
@@ -84,6 +89,7 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
                 # Add all the sensors <-- testing purposes only
                 new_bot.add_sensor(self.__sensors[0].copy())
+                new_bot.add_sensor(self.__sensors[1].copy())
 
                 # Set sensor for bot 5 to be visible
                 if new_bot.get_id() == 5:
@@ -105,7 +111,26 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
             for sensor in bot.get_sensors():
                 if sensor.get_is_visible():
                     if sensor.get_sub_type() == SensorTypes.CIRCLE:
-                        cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
+                        pass
+                        #cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
+                    elif sensor.get_sub_type() == SensorTypes.CONE:
+                        front = bot.get_front_point()
+                        centre = bot.get_centre()
+                        
+                        x = abs(front.x - centre.x)
+                        y = abs(front.y - front.x)
+                        
+                        try:
+                            m = int(y / x)
+                        except ZeroDivisionError:
+                            m = 0
+                            
+                        angle = numpy.arctan(m)
+                        start_angle = m - int(sensor.get_angle_offset() / 2)
+                        end_angle = start_angle + sensor.get_angle_offset()
+                        print("m: {0} arctan: {1} Start: {2} End: {3}".format(m, angle, start_angle, end_angle))
+                        radius = sensor.get_radius()
+                        cv2.ellipse(overlay, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), -1)
 
         # Transparency for overlaid augments
         alpha = 0.3
@@ -130,8 +155,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
-       print(data)
-       #pass
+       #print(data)
+       pass
 
     def simulator_data(self):
         return self.__bots, self.__environment, self.__frame

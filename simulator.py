@@ -47,24 +47,24 @@ class Simulator():
     def circle_sensor(self, bot, sensor):
         height = self.__frame.shape[0]
         width = self.__frame.shape[1]
-        
+
+        # Create blank mask
         img = numpy.zeros((height, width), numpy.uint8)
 
+        # TODO: Fix this to work with multiple environment objects
         for env in self.__environment:
+            # Add circle for environment object
             cv2.circle(img, self.__environment[0].get_position(), self.__environment[0].get_radius(), 255)
+
+            # Identify circle using mask - This needs fixin' tho
             points = numpy.transpose(numpy.where(img == 255))
-            #print(env.get_position())
         
         in_range = False
         for point in points:
             a = numpy.array((point[1], point[0]))
             b = numpy.array((bot.get_centre().x, bot.get_centre().y))
             euclid = numpy.linalg.norm(a - b)
-            d = math.sqrt(euclid)
-            #print(euclid)
-            #print(d)
-            #print("Euclidean: {0}".format(numpy.linalg.norm(numpy.array((point[0], point[1], 0)) - numpy.array((bot.get_centre().x, bot.get_centre().y, 0)))))
-            #print("({0}, {1}) - ({2}, {3}))".format(point[1], point[0], bot.get_centre().x, bot.get_centre().y))
+
             if (euclid <= sensor.get_radius()):
                 in_range = True
                 break;
