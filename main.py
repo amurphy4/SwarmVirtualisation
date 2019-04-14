@@ -66,6 +66,10 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
     def tracking_handler(self, bots, frame):
         self.__frame = frame
+
+        for bot in self.__bots:
+            # Set all bots to invisible so we don't see sensors for bots the system has lost track of
+            bot.set_is_visible(False)
         
         # Update bots with new positions etc.
         for bot in bots:
@@ -80,8 +84,9 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
                     tr, tl, bl, br = bot.get_corners()
                     advanced_bot.set_corners(tr, tl, bl, br)
 
-                    # We found the bot, no need to add it to the list
+                    # We found the bot, no need to add it to the list - make visible again
                     bot_found = True
+                    advanced_bot.set_is_visible(True)
 
             if not bot_found:
                 # We didn't find the bot - create a new one in our environment
@@ -108,29 +113,29 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         
         # Add sensors to overlay
         for bot in self.__bots:
-            for sensor in bot.get_sensors():
-                if sensor.get_is_visible():
-                    if sensor.get_sub_type() == SensorTypes.CIRCLE:
-                        pass
-                        #cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
-                    elif sensor.get_sub_type() == SensorTypes.CONE:
-                        front = bot.get_front_point()
-                        centre = bot.get_centre()
-                        
-                        x = abs(front.x - centre.x)
-                        y = abs(front.y - front.x)
-                        
-                        try:
-                            m = int(y / x)
-                        except ZeroDivisionError:
-                            m = 0
+            if bot.get_is_visible():
+                for sensor in bot.get_sensors():
+                    if sensor.get_is_visible():
+                        if sensor.get_sub_type() == SensorTypes.CIRCLE:
+                            pass
+                            #cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
+                        elif sensor.get_sub_type() == SensorTypes.CONE:
+                            front = bot.get_front_point()
+                            centre = bot.get_centre()
+
+                            a = numpy.array((front.x, front.y))
+                            b = numpy.array((centre.x, centre.y))
+                            dist = numpy.linalg.norm(a - b)
+
+                            pointY = centre.y + dist
+
+                            result = math.atan2(pointY - centre.y, centre.x - centre.x) - math.atan2(front.y - centre.y, front.x - centre.x)
                             
-                        angle = numpy.arctan(m)
-                        start_angle = m - int(sensor.get_angle_offset() / 2)
-                        end_angle = start_angle + sensor.get_angle_offset()
-                        print("m: {0} arctan: {1} Start: {2} End: {3}".format(m, angle, start_angle, end_angle))
-                        radius = sensor.get_radius()
-                        cv2.ellipse(overlay, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), -1)
+                            start_angle = math.degrees(result) - int(sensor.get_angle_offset() / 2)
+                            end_angle = start_angle + sensor.get_angle_offset()
+                            print("Start: {0}, End: {1}".format(start_angle, end_angle))
+                            radius = sensor.get_radius()
+                            cv2.ellipse(overlay, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), -1)
 
         # Transparency for overlaid augments
         alpha = 0.3

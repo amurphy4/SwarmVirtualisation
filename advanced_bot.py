@@ -12,6 +12,8 @@ class Bot(B):
         self.__sensors = []
         self.__actuators = []
 
+        self.__is_visible = True
+
         self.__ip = None
 
     def get_sensors(self):
@@ -37,3 +39,9 @@ class Bot(B):
 
     def set_ip(self, ip):
         self.__ip = ip
+
+    def get_is_visible(self):
+        return self.__is_visible
+
+    def set_is_visible(self, is_visible):
+        self.__is_visible = is_visible
