@@ -56,6 +56,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         self.__sensors.append(sensor)
         sensor = Sensor("test_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
         self.__sensors.append(sensor)
+        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
+        self.__sensors.append(sensor)
 
         self.start_tracking()
         self.start_virtualisation()
@@ -94,7 +96,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
                 # Add all the sensors <-- testing purposes only
                 #new_bot.add_sensor(self.__sensors[0].copy())
-                new_bot.add_sensor(self.__sensors[1].copy())
+                #new_bot.add_sensor(self.__sensors[1].copy())
+                new_bot.add_sensor(self.__sensors[2].copy())
 
                 # Set sensor for bot 5 to be visible
                 if new_bot.get_id() == 5:
@@ -117,27 +120,65 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
                 for sensor in bot.get_sensors():
                     if sensor.get_is_visible():
                         if sensor.get_sub_type() == SensorTypes.CIRCLE:
-                            #pass
+                            # Draw circle
                             cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
                         elif sensor.get_sub_type() == SensorTypes.CONE:
+                            # Get positions from bot to calculate tag offset
                             front = bot.get_front_point()
                             centre = bot.get_centre()
 
+                            # Calculate tag offset with respect to Y axis
                             a = numpy.array((front.x, front.y))
                             b = numpy.array((centre.x, centre.y))
                             dist = numpy.linalg.norm(a - b)
 
                             pointY = centre.y + dist
 
+                            # Calculate angle between top of tag and Y axis
                             result = math.atan2(pointY - centre.y, centre.x - centre.x) + math.atan2(front.y - centre.y, front.x - centre.x)
                             angle = math.degrees(result)
-                            
+
+                            # Calculate start and end angles for cone sensor
                             start_angle = angle - int(sensor.get_cone_angle() / 2) + sensor.get_angle_offset()
                             end_angle = start_angle + sensor.get_cone_angle()
-                            #print((start_angle, end_angle, sensor.get_cone_angle(), angle))
+                            
+                            # Add sensor to image
                             radius = sensor.get_radius()
                             cv2.ellipse(overlay, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), -1)
+                        elif sensor.get_sub_type() == SensorTypes.LINE:
+                            # Get positions from bot
+                            centre = bot.get_centre()
+                            front = bot.get_front_point()
 
+                            # Calculate distance between top and centre of tag - used for scaling sensor end coords
+                            a = numpy.array((front.x, front.y))
+                            b = numpy.array((centre.x, centre.y))
+                            dist = numpy.linalg.norm(a - b)
+
+                            # Calculate a scaling factor 
+                            scale_factor = float(sensor.get_range()) / float(dist)
+
+                            # Transform around centre as origin point
+                            front.x = front.x - centre.x
+                            front.y = front.y - centre.y
+
+                            # Scale coordinates
+                            end = (int(float(front.x) * scale_factor), int(float(front.y) * scale_factor))
+
+                            # Rotate end coords around centre by theta degrees
+                            theta = math.radians(sensor.get_angle_offset())
+
+                            endX = int(end[0] * math.cos(theta) - end[1] * math.sin(theta))
+                            endY = int(end[0] * math.sin(theta) + end[1] * math.cos(theta))
+
+                            end = (endX, endY)
+
+                            # Transform back
+                            end = (end[0] + centre.x, end[1] + centre.y)
+
+                            # Add sensor to image
+                            cv2.line(overlay, (centre.x, centre.y), end, 255, 5)
+                            
         # Transparency for overlaid augments
         alpha = 0.3
         frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)

@@ -134,7 +134,71 @@ class Simulator():
 
 
     def line_sensor(self, bot, sensor):
-        pass
+        height = self.__frame.shape[0]
+        width = self.__frame.shape[1]
+
+        # Create blank mask
+        img = numpy.zeros((height, width), numpy.uint8)
+        
+        # Get positions from bot
+        centre = bot.get_centre()
+        front = bot.get_front_point()
+
+        # Calculate distance between top and centre of tag - used for scaling sensor end coords
+        a = numpy.array((front.x, front.y))
+        b = numpy.array((centre.x, centre.y))
+        dist = numpy.linalg.norm(a - b)
+
+        # Calculate a scaling factor 
+        scale_factor = float(sensor.get_range()) / float(dist)
+
+        # Transform around centre as origin point
+        front.x = front.x - centre.x
+        front.y = front.y - centre.y
+
+        # Scale coordinates
+        end = (int(float(front.x) * scale_factor), int(float(front.y) * scale_factor))
+
+        # Rotate end coords around centre by theta degrees
+        theta = math.radians(sensor.get_angle_offset())
+
+        endX = int(end[0] * math.cos(theta) - end[1] * math.sin(theta))
+        endY = int(end[0] * math.sin(theta) + end[1] * math.cos(theta))
+
+        end = (endX, endY)
+
+        # Transform back
+        end = (end[0] + centre.x, end[1] + centre.y)
+
+        # Add sensor to image
+        cv2.line(img, (centre.x, centre.y), end, 255, 5)
+
+        # Get points in sensor
+        sensor_points = numpy.transpose(numpy.where(img == 255))
+
+        # Re-create blank mask
+        img = numpy.zeros((height, width), numpy.uint8)
+
+        env_points = []
+        for env in self.__environment:
+            # Add circle for environment object
+            cv2.circle(img, env.get_position(), env.get_radius(), 255)
+
+            # Identify circle using mask
+            points = numpy.transpose(numpy.where(img == 255))
+            env_points.append(points)
+
+        for point in sensor_points:
+            # Loop over sensor points
+            for env in env_points:
+                # Loop over environment objects
+                for env_point in env:
+                    if (point[0] == env_point[0]) and (point[1] == env_point[1]):
+                        # If sensor point is in the environment points list return True - I apologise to the processor
+                        return True
+
+        # Not in range of any environment objects
+        return False
 
     def _simulate(self):
         while self.__looping:
@@ -170,7 +234,15 @@ class Simulator():
                             # Sensor detected something, log this to be returned at the end of the tick
                             data["sensors"].append({sensor.get_name() : True})
                     elif sensor.get_sub_type() == SensorTypes.LINE:
-                        pass
+                        # Simulate linear sensor around bot
+                        try:
+                            in_range = self.line_sensor(bot, sensor);
+                        except AttributeError:
+                            break;
+
+                        if in_range:
+                            # Sensor detected something, log this to be returned at the end of the tick
+                            data["sensors"].append({sensor.get_name() : True})
 
                 sensor_data["bots"].append(data)
 
