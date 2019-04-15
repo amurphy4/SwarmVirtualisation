@@ -25,6 +25,7 @@ class Simulator():
 
         self.__callback = None
         self.__data_method = None
+        self.__interaction = None
 
         self.__looping = True
 
@@ -40,6 +41,9 @@ class Simulator():
 
     def set_data_method(self, method):
         self.__data_method = method
+
+    def set_interaction(self, method):
+        self.__interaction = method
 
     def get_data(self):
         self.__bots, self.__environment, self.__frame = self.__data_method()
@@ -200,16 +204,55 @@ class Simulator():
         # Not in range of any environment objects
         return False
 
+    def placer(self, bot, actuator):
+        ticks_per_place = actuator.get_ticks_per_place()
+        ticks = actuator.get_ticks()
+
+        if ticks == ticks_per_place:
+            # Place item at current position
+            obj = bot.get_obj_to_place().copy()
+            obj.set_position((bot.get_centre().x, bot.get_centre().y))
+            self.__interaction(obj)
+            
+            bot.reset_ticks()
+
+            return True
+        else:
+            bot.increment_ticks()
+
+            return False
+
+    def grabber(self, bot, actuator):
+        centre = bot.get_centre()
+        height = self.__frame.shape[0]
+        width = self.__frame.shape[1]
+
+        # Create blank mask
+        img = numpy.zeros((height, width), numpy.uint8)
+
+        # Identify points for all environment objects 
+        for env in self.__environment:
+            # Add circle for environment object
+            cv2.circle(img, env.get_position(), env.get_radius(), 255)
+
+            # Identify circle using mask
+            points = numpy.transpose(numpy.where(img == 255))
+
+            for point in points:
+                if (point[0] == centre.x) and (point[1] == centre.y):
+                    return bot.add_to_inventory(env.copy())
+                    
+
     def _simulate(self):
         while self.__looping:
             #SIMULATE SHIT
 
             self.get_data()
 
-            sensor_data = {"bots" : []}
+            data = {"bots" : []}
 
             for bot in self.__bots:                
-                data = {"id" : bot.get_id(), "sensors" : []}
+                bot_data = {"id" : bot.get_id(), "sensors" : [], "actuators" : []}
                 # Simulate sensors for each bot
                 for sensor in bot.get_sensors():
                     # Simulate sensor
@@ -222,7 +265,7 @@ class Simulator():
 
                         if in_range:
                             # Sensor detected something, log this to be returned at the end of the tick
-                            data["sensors"].append({sensor.get_name() : True})
+                            bot_data["sensors"].append({sensor.get_name() : True})
                     elif sensor.get_sub_type() == SensorTypes.CONE:
                         # Simulate conical sensor around bot
                         try:
@@ -232,7 +275,7 @@ class Simulator():
 
                         if in_range:
                             # Sensor detected something, log this to be returned at the end of the tick
-                            data["sensors"].append({sensor.get_name() : True})
+                            bot_data["sensors"].append({sensor.get_name() : True})
                     elif sensor.get_sub_type() == SensorTypes.LINE:
                         # Simulate linear sensor around bot
                         try:
@@ -242,9 +285,21 @@ class Simulator():
 
                         if in_range:
                             # Sensor detected something, log this to be returned at the end of the tick
-                            data["sensors"].append({sensor.get_name() : True})
+                            bot_data["sensors"].append({sensor.get_name() : True})
 
-                sensor_data["bots"].append(data)
+                data["bots"].append(data)
+
+                for actuator in bot.get_actuators():
+                    if actuator.get_sub_type == ActuatorTypes.PLACER:
+                        placed = placer(bot, actuator)
+                        
+                        if placed:
+                            bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
+                    elif actuator.get_sub_type == ActuatorTypes.GRABBER:
+                        grabbed = grabber(bot, actuator)
+
+                        if grabbed:
+                            bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
 
             self.__callback(sensor_data)
                 

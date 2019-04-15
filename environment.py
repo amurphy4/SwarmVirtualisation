@@ -32,3 +32,7 @@ class Environment(VirtualObject):
 
     def set_is_visible(self, is_visible):
         self.__is_visible = is_visible
+
+    def copy(self):
+        copy = Environment(self.get_name(), self.get_sub_type(), self.get_position(), self.get_radius())
+        return copy

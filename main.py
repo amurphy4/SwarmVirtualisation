@@ -205,6 +205,9 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
        print(data)
        #pass
 
+    def environment_callback(self, env):
+        self.__environment.append(env)
+
     def simulator_data(self):
         return self.__bots, self.__environment, self.__frame
 
@@ -215,6 +218,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         self.__simulator.set_callback(self.virtualisation_callback)
 
         self.__simulator.set_data_method(self.simulator_data)
+
+        self.__simulator.set_interaction(self.environment_callback)
 
         # Start virtualisation thread
         self.__simulator.start()
