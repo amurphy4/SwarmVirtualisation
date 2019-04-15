@@ -3,7 +3,7 @@ from enums import *
 
 class Sensor(VirtualObject):
 
-    def __init__(self, name, sensor_type, _range=None, radius=None, angle_offset=None, tangent=None):
+    def __init__(self, name, sensor_type, _range=None, radius=None, angle_offset=None, cone_angle=None):
 
         VirtualObject.__init__(self, name)
 
@@ -15,8 +15,8 @@ class Sensor(VirtualObject):
         self.__range = _range
         self.__radius = radius
         self.__angle_offset = angle_offset
-        self.__tangent = tangent
-
+        self.__cone_angle = cone_angle
+        
         self.__is_visible = True
 
     def get_range(self):
@@ -37,11 +37,11 @@ class Sensor(VirtualObject):
     def set_angle_offset(self, angle_offset):
         self.__angle_offset = angle_offset
 
-    def get_tangent(self):
-        return self.__tangent
+    def get_cone_angle(self):
+        return self.__cone_angle
 
-    def set_tangent(self, tangent):
-        self.__tangent = tangent
+    def set_cone_angle(self, cone_angle):
+        self.__cone_angle = cone_angle
 
     def get_is_visible(self):
         return self.__is_visible
@@ -50,5 +50,5 @@ class Sensor(VirtualObject):
         self.__is_visible = is_visible
 
     def copy(self):
-        copy = Sensor(self.get_name(), self.get_sub_type(), self.get_range(), self.get_radius(), self.get_angle_offset(), self.get_tangent())
+        copy = Sensor(self.get_name(), self.get_sub_type(), self.get_range(), self.get_radius(), self.get_angle_offset(), self.get_cone_angle())
         return copy

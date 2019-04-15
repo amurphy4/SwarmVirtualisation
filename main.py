@@ -54,7 +54,7 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         # Create testing sensor objects
         sensor = Sensor("food_sensor", SensorTypes.CIRCLE, radius=50)
         self.__sensors.append(sensor)
-        sensor = Sensor("test_sensor", SensorTypes.CONE, radius=50, angle_offset=30)
+        sensor = Sensor("test_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
         self.__sensors.append(sensor)
 
         self.start_tracking()
@@ -93,7 +93,7 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
                 new_bot = Bot(bot)
 
                 # Add all the sensors <-- testing purposes only
-                new_bot.add_sensor(self.__sensors[0].copy())
+                #new_bot.add_sensor(self.__sensors[0].copy())
                 new_bot.add_sensor(self.__sensors[1].copy())
 
                 # Set sensor for bot 5 to be visible
@@ -117,8 +117,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
                 for sensor in bot.get_sensors():
                     if sensor.get_is_visible():
                         if sensor.get_sub_type() == SensorTypes.CIRCLE:
-                            pass
-                            #cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
+                            #pass
+                            cv2.circle(overlay, (bot.get_centre().x, bot.get_centre().y), sensor.get_radius(), (0, 255, 0), -1)
                         elif sensor.get_sub_type() == SensorTypes.CONE:
                             front = bot.get_front_point()
                             centre = bot.get_centre()
@@ -129,11 +129,12 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
                             pointY = centre.y + dist
 
-                            result = math.atan2(pointY - centre.y, centre.x - centre.x) - math.atan2(front.y - centre.y, front.x - centre.x)
+                            result = math.atan2(pointY - centre.y, centre.x - centre.x) + math.atan2(front.y - centre.y, front.x - centre.x)
+                            angle = math.degrees(result)
                             
-                            start_angle = math.degrees(result) - int(sensor.get_angle_offset() / 2)
-                            end_angle = start_angle + sensor.get_angle_offset()
-                            print("Start: {0}, End: {1}".format(start_angle, end_angle))
+                            start_angle = angle - int(sensor.get_cone_angle() / 2) + sensor.get_angle_offset()
+                            end_angle = start_angle + sensor.get_cone_angle()
+                            #print((start_angle, end_angle, sensor.get_cone_angle(), angle))
                             radius = sensor.get_radius()
                             cv2.ellipse(overlay, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), -1)
 
@@ -160,8 +161,8 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
-       #print(data)
-       pass
+       print(data)
+       #pass
 
     def simulator_data(self):
         return self.__bots, self.__environment, self.__frame
