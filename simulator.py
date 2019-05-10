@@ -205,22 +205,28 @@ class Simulator():
         return False
 
     def placer(self, bot, actuator):
-        ticks_per_place = actuator.get_ticks_per_place()
-        ticks = actuator.get_ticks()
-
-        if ticks == ticks_per_place:
-            # Place item at current position
-            obj = bot.get_obj_to_place().copy()
-            obj.set_position((bot.get_centre().x, bot.get_centre().y))
-            self.__interaction(obj)
-            
-            bot.reset_ticks()
-
+        if len(actuator.get_inventory() > 0):
+            # Place inventory item
+            self.__interaction(actuator.get_inventory()[0])
+            actuator.get_inventory().pop(0)
             return True
         else:
-            bot.increment_ticks()
+            ticks_per_place = actuator.get_ticks_per_place()
+            ticks = actuator.get_ticks()
 
-            return False
+            if ticks == ticks_per_place:
+                # Place item at current position
+                obj = bot.get_obj_to_place().copy()
+                obj.set_position((bot.get_centre().x, bot.get_centre().y))
+                self.__interaction(obj)
+                
+                bot.reset_ticks()
+
+                return True
+            else:
+                bot.increment_ticks()
+
+                return False
 
     def grabber(self, bot, actuator):
         centre = bot.get_centre()
@@ -240,7 +246,12 @@ class Simulator():
 
             for point in points:
                 if (point[0] == centre.x) and (point[1] == centre.y):
-                    return bot.add_to_inventory(env.copy())
+                    env.set_capacity(env.get_capacity() - 1)
+
+                    if env.get_capacity == 0:
+                        self.__interaction(env, True)
+                        
+                    return actuator.add_to_inventory(env.copy())
                     
 
     def _simulate(self):
@@ -296,10 +307,11 @@ class Simulator():
                         if placed:
                             bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
                     elif actuator.get_sub_type == ActuatorTypes.GRABBER:
-                        grabbed = grabber(bot, actuator)
+                        if actuator.get_capacity() > len(actuator.get_inventory()):
+                            grabbed = grabber(bot, actuator)
 
-                        if grabbed:
-                            bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
+                            if grabbed:
+                                bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
 
             self.__callback(sensor_data)
                 

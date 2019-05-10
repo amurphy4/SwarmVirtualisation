@@ -3,7 +3,7 @@ from enums import *
 
 class Environment(VirtualObject):
 
-    def __init__(self, name, environment_type, position=None, radius=None):
+    def __init__(self, name, environment_type, position=None, radius=None, capacity=None):
 
         VirtualObject.__init__(self, name)
 
@@ -13,6 +13,7 @@ class Environment(VirtualObject):
 
         self.__position = position
         self.__radius = radius
+        self.__capacity = capacity
         self.__is_visible = False
 
     def get_position(self):
@@ -26,6 +27,12 @@ class Environment(VirtualObject):
 
     def set_radius(self, radius):
         self.__radius = radius
+
+    def get_capacity(self):
+        return self.__capacity
+
+    def set_capacity(self, capacity):
+        self.__capacity = capacity
 
     def get_is_visible(self):
         return self.__is_visible

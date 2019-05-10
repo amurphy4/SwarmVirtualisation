@@ -205,8 +205,11 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
        print(data)
        #pass
 
-    def environment_callback(self, env):
-        self.__environment.append(env)
+    def environment_callback(self, env, destroy=None):
+        if destroy:
+            self.__environment.remove(env)
+        else:
+            self.__environment.append(env)
 
     def simulator_data(self):
         return self.__bots, self.__environment, self.__frame
