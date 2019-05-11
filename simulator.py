@@ -48,6 +48,17 @@ class Simulator():
     def get_data(self):
         self.__bots, self.__environment, self.__frame = self.__data_method()
 
+    def angle(p1, p2):
+        x1, y1 = p1
+        x2, y2 = p2
+
+        dot = x1 * x2 + y1 * y2
+
+        len1 = math.hypot(x1, y1)
+        len2 = math.hypot(x2, y2)
+
+        return math.acos(dot / (len1 * len2))
+
     def circle_sensor(self, bot, sensor):
         height = self.__frame.shape[0]
         width = self.__frame.shape[1]
@@ -74,7 +85,10 @@ class Simulator():
 
                 if (euclid <= sensor.get_radius()):
                     # In range!
-                    return True
+                    front = bot.get_front()
+                    p1 = (front.x, front.y)
+                    p2 = point
+                    return angle(p1, p2)
 
         # Not in range
         return False
@@ -131,7 +145,10 @@ class Simulator():
                 for env_point in env:
                     if (point[0] == env_point[0]) and (point[1] == env_point[1]):
                         # If sensor point is in the environment points list return True - I apologise to the processor
-                        return True
+                        front = bot.get_front()
+                        p1 = (front.x, front.y)
+                        p2 = env_point
+                        return angle(p1, p2)
 
         # Not in range of any environment objects
         return False
@@ -199,7 +216,10 @@ class Simulator():
                 for env_point in env:
                     if (point[0] == env_point[0]) and (point[1] == env_point[1]):
                         # If sensor point is in the environment points list return True - I apologise to the processor
-                        return True
+                        front = bot.get_front()
+                        p1 = (front.x, front.y)
+                        p2 = env_point
+                        return angle(p1, p2)
 
         # Not in range of any environment objects
         return False
@@ -313,7 +333,7 @@ class Simulator():
                             if grabbed:
                                 bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
 
-            self.__callback(sensor_data)
+            self.__callback(data)
                 
 
 class SimulationThread(threading.Thread):

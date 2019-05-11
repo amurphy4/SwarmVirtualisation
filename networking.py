@@ -1,20 +1,61 @@
-import socket
+import socket, json
 
-s = socket.socket()
+class Networking():
 
-port = 12345
+    def __init__(self):
 
-s.bind(('', port))
-s.listen(5)
+        self.__port = 12345
+        self.__sockets = []
 
-while True:
-    c, addr = s.accept()
+        # TEMP - Testing sockets
+        self.connect("192.168.100.104")
+        self.connect("192.168.100.101")
 
-##    c.send("Hello World!")
+    def connect(self, addr):
+        s = socket.socket()
 
-    try:
-        print("Sent 'Hello World!' to {0}".format(addr))
-    except Exception:
-        print("An error occured displaying connected address")
+        try:
+            s.connect((addr, self.__port))
+        except socket.error:
+            # Connection refused
+            s = None
 
-    c.close()
+        if s is not None:
+            self.__sockets.append(s)
+            return True
+        else:
+            return False
+
+    def get_socket(self, addr):
+        for socket in self.__sockets:
+            if socket.getpeername()[0] == addr:
+                return socket
+
+    def send_data(self, socket, data):
+        if socket is None:
+            return
+        
+        socket.send(self.encode_json(data))
+
+    def encode_json(self, data):
+        return json.dumps(data)
+
+    def close(self):
+        for socket in self.__sockets:
+            socket.close()
+
+        
+if __name__ == "__main__":
+    # TESTING
+    net = Networking()
+
+    s = net.get_socket("192.168.100.101")
+
+    net.send_data(s, "Hi!")
+
+    s = net.get_socket("192.168.100.104")
+
+    net.send_data(s, {"Message" : "69.4"})
+
+    net.close()
+
