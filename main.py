@@ -54,6 +54,14 @@ class SwarmVirtualisation(threading.Thread):
         self.__tag_offset = 0
         self.__tc.set_tag_offset(self.__tag_offset)
 
+        # Create testing sensor objects
+        sensor = Sensor("food_sensor", SensorTypes.CIRCLE, radius=50)
+        self.__sensors.append(sensor)
+        sensor = Sensor("test_sensor", SensorTypes.CONE, radius=500, angle_offset=0, cone_angle=75)
+        self.__sensors.append(sensor)
+        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
+        self.__sensors.append(sensor)
+
         self.start_tracking()
         #self.start_virtualisation()
 
@@ -78,21 +86,11 @@ class SwarmVirtualisation(threading.Thread):
         obj = Environment("food", EnvironmentTypes.GOAL, self.arena_centre, 10)
         self.__environment.append(obj)
 
-        # Create testing sensor objects
-        sensor = Sensor("food_sensor", SensorTypes.CIRCLE, radius=50)
-        self.__sensors.append(sensor)
-        sensor = Sensor("test_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
-        self.__sensors.append(sensor)
-        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
-        self.__sensors.append(sensor)
-
     def tracking_callback(self, bots, frame):
         print("callback {0}".format(threading.current_thread().name))
         self.__queue.put((bots, frame))
-        print(self.__queue.qsize())
 
     def tracking_handler(self, bots, frame):
-        print("handler {0}".format(threading.current_thread().name))
         self.__frame = frame
 
         for bot in self.__bots:
@@ -120,13 +118,10 @@ class SwarmVirtualisation(threading.Thread):
 
             if not bot_found:
                 if bot.get_id() == 49 and self.__calibrated:
-                    print(bot)
                     continue
                 elif bot.get_id() == 49:
                     # Get corners
                     tl, tr, br, bl = bot.get_corners()
-
-                    print(bot.get_corners())
 
                     # Calculate centre of the tag
                     centre = (int((tl.x + tr.x + br.x + bl.x) / 4), int((tl.y + tr.y + br.y + bl.y) / 4))
@@ -144,6 +139,14 @@ class SwarmVirtualisation(threading.Thread):
                 #new_bot.add_sensor(self.__sensors[1].copy())
                 #new_bot.add_sensor(self.__sensors[2].copy())
 
+                for sensor in self.__sensors:
+                    copy = sensor.copy()
+
+                    if sensor.get_sub_type() == SensorTypes.CIRCLE:
+                        copy.set_is_visible(False)
+
+                    new_bot.add_sensor(copy)
+
                 # Set sensor for bot 5 to be visible
 ##                if new_bot.get_id() == 5:
 ##                    new_bot.get_sensors()[0].set_is_visible(True)
@@ -154,11 +157,7 @@ class SwarmVirtualisation(threading.Thread):
         self.arena_corners = corners
 
         # Augment frame before converting
-        # Add environment objects to overlay
         overlay = frame.copy()
-        for env in self.__environment:
-            print("Env overlay added at ", env.get_position())
-            overlay = cv2.circle(overlay, env.get_position(), env.get_radius(), (0, 255, 0), -1)
         
         # Add sensors to overlay
         for bot in self.__bots:
@@ -185,7 +184,7 @@ class SwarmVirtualisation(threading.Thread):
                             angle = math.degrees(result)
 
                             # Calculate start and end angles for cone sensor
-                            start_angle = angle - int(sensor.get_cone_angle() / 2) + sensor.get_angle_offset()
+                            start_angle = angle - int(sensor.get_cone_angle() / 2) + sensor.get_angle_offset() - 90 + self.__tag_offset
                             end_angle = start_angle + sensor.get_cone_angle()
                             
                             # Add sensor to image
@@ -212,7 +211,7 @@ class SwarmVirtualisation(threading.Thread):
                             end = (int(float(front.x) * scale_factor), int(float(front.y) * scale_factor))
 
                             # Rotate end coords around centre by theta degrees
-                            theta = math.radians(sensor.get_angle_offset())
+                            theta = math.radians(sensor.get_angle_offset() + self.__tag_offset)
 
                             endX = int(end[0] * math.cos(theta) - end[1] * math.sin(theta))
                             endY = int(end[0] * math.sin(theta) + end[1] * math.cos(theta))
@@ -224,7 +223,12 @@ class SwarmVirtualisation(threading.Thread):
 
                             # Add sensor to image
                             cv2.line(overlay, (centre.x, centre.y), end, 255, 5)
-                            
+
+        # Add environment objects to overlay
+        for env in self.__environment:
+            print("Env overlay added at ", env.get_position())
+            overlay = cv2.circle(overlay, env.get_position(), env.get_radius(), (255, 0, 255), -1)
+            
         # Transparency for overlaid augments
         alpha = 0.3
         frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
@@ -265,7 +269,7 @@ class SwarmVirtualisation(threading.Thread):
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
-       #print(data)
+       print(data)
 ##       socket = self.__net.get_socket("BOT IP ADDRESS")
 ##       self.__net.send_data(socket, data)
        pass
@@ -277,7 +281,7 @@ class SwarmVirtualisation(threading.Thread):
             self.__environment.append(env)
 
     def simulator_data(self):
-        return self.__bots, self.__environment, self.__frame
+        return self.__bots, self.__environment, self.__frame, self.__tag_offset
 
     def start_virtualisation(self):
         self.output_to_console("Starting sensor and actuator virtualisation")

@@ -22,6 +22,7 @@ class Simulator():
         self.__bots = None
         self.__environment = None
         self.__frame = None
+        self.__tag_offset = None
 
         self.__callback = None
         self.__data_method = None
@@ -46,7 +47,7 @@ class Simulator():
         self.__interaction = method
 
     def get_data(self):
-        self.__bots, self.__environment, self.__frame = self.__data_method()
+        self.__bots, self.__environment, self.__frame, self.__tag_offset = self.__data_method()
 
     def angle(p1, p2):
         x1, y1 = p1
@@ -121,7 +122,7 @@ class Simulator():
 
         # Add sensor to image
         radius = sensor.get_radius()
-        cv2.ellipse(img, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, 255)
+        cv2.ellipse(img, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, 255) - 90 + self.__tag_offset
 
         # Get all points in sensor range
         sensor_points = numpy.transpose(numpy.where(img == 255))
@@ -171,7 +172,7 @@ class Simulator():
         dist = numpy.linalg.norm(a - b)
 
         # Calculate a scaling factor 
-        scale_factor = float(sensor.get_range()) / float(dist)
+        scale_factor = float(sensor.get_range() + self.__tag_offset) / float(dist)
 
         # Transform around centre as origin point
         front.x = front.x - centre.x
