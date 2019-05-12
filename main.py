@@ -55,15 +55,15 @@ class SwarmVirtualisation(threading.Thread):
         self.__tc.set_tag_offset(self.__tag_offset)
 
         # Create testing sensor objects
-        sensor = Sensor("food_sensor", SensorTypes.CIRCLE, radius=50)
+        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=5000)
         self.__sensors.append(sensor)
-        sensor = Sensor("test_sensor", SensorTypes.CONE, radius=500, angle_offset=0, cone_angle=75)
+        sensor = Sensor("cone_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
         self.__sensors.append(sensor)
         sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
         self.__sensors.append(sensor)
 
         self.start_tracking()
-        #self.start_virtualisation()
+        self.start_virtualisation()
 
 
     def run(self):
@@ -87,7 +87,6 @@ class SwarmVirtualisation(threading.Thread):
         self.__environment.append(obj)
 
     def tracking_callback(self, bots, frame):
-        print("callback {0}".format(threading.current_thread().name))
         self.__queue.put((bots, frame))
 
     def tracking_handler(self, bots, frame):
@@ -134,22 +133,13 @@ class SwarmVirtualisation(threading.Thread):
                 # We didn't find the bot - create a new one in our environment
                 new_bot = Bot(bot)
 
-                # Add all the sensors <-- testing purposes only
-                #new_bot.add_sensor(self.__sensors[0].copy())
-                #new_bot.add_sensor(self.__sensors[1].copy())
-                #new_bot.add_sensor(self.__sensors[2].copy())
-
                 for sensor in self.__sensors:
                     copy = sensor.copy()
 
-                    if sensor.get_sub_type() == SensorTypes.CIRCLE:
-                        copy.set_is_visible(False)
+##                    if sensor.get_sub_type() == SensorTypes.CIRCLE:
+##                        copy.set_is_visible(False)
 
                     new_bot.add_sensor(copy)
-
-                # Set sensor for bot 5 to be visible
-##                if new_bot.get_id() == 5:
-##                    new_bot.get_sensors()[0].set_is_visible(True)
                     
                 # We've created a bot! Add it to our environment!
                 self.__bots.append(new_bot)
@@ -226,7 +216,6 @@ class SwarmVirtualisation(threading.Thread):
 
         # Add environment objects to overlay
         for env in self.__environment:
-            print("Env overlay added at ", env.get_position())
             overlay = cv2.circle(overlay, env.get_position(), env.get_radius(), (255, 0, 255), -1)
             
         # Transparency for overlaid augments
@@ -269,7 +258,7 @@ class SwarmVirtualisation(threading.Thread):
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
-       print(data)
+       #print(data["bots"])
 ##       socket = self.__net.get_socket("BOT IP ADDRESS")
 ##       self.__net.send_data(socket, data)
        pass

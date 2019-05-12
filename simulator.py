@@ -49,7 +49,7 @@ class Simulator():
     def get_data(self):
         self.__bots, self.__environment, self.__frame, self.__tag_offset = self.__data_method()
 
-    def angle(p1, p2):
+    def angle(self, p1, p2):
         x1, y1 = p1
         x2, y2 = p2
 
@@ -58,7 +58,7 @@ class Simulator():
         len1 = math.hypot(x1, y1)
         len2 = math.hypot(x2, y2)
 
-        return math.acos(dot / (len1 * len2))
+        return math.degrees(math.acos(dot / (len1 * len2)))
 
     def circle_sensor(self, bot, sensor):
         height = self.__frame.shape[0]
@@ -86,10 +86,23 @@ class Simulator():
 
                 if (euclid <= sensor.get_radius()):
                     # In range!
-                    front = bot.get_front()
-                    p1 = (front.x, front.y)
-                    p2 = point
-                    return angle(p1, p2)
+                    front = bot.get_front_point()
+                    centre = bot.get_centre()
+                    p1 = (front.x - centre.x, front.y - centre.y)
+                    p2 = (point[1] - centre.x, point[0] - centre.y)
+##                    p1 = (1, 0)
+##                    p2 = (point[1], point[0])
+                    #print(p1, p2)
+                    dot = self.angle(p1, p2)
+                    atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
+
+                    if atan > 180:
+                        atan = atan - 360
+
+                    atan = -atan
+
+                    print(atan)
+                    return atan
 
         # Not in range
         return False
@@ -291,35 +304,33 @@ class Simulator():
                     if sensor.get_sub_type() == SensorTypes.CIRCLE:
                         # Simulate fully circular sensor around bot
                         try:
-                            in_range = self.circle_sensor(bot, sensor);
-                        except AttributeError:
-                            break;
-
-                        if in_range:
-                            # Sensor detected something, log this to be returned at the end of the tick
-                            bot_data["sensors"].append({sensor.get_name() : True})
+                            angle = self.circle_sensor(bot, sensor);
+                        except AttributeError as e:
+                            print(e)
+                            continue
+                        
+                        # Sensor detected something, log this to be returned at the end of the tick
+                        bot_data["sensors"].append({sensor.get_name() : angle})
                     elif sensor.get_sub_type() == SensorTypes.CONE:
                         # Simulate conical sensor around bot
                         try:
-                            in_range = self.cone_sensor(bot, sensor);
+                            angle = self.cone_sensor(bot, sensor);
                         except AttributeError:
-                            break;
+                            continue
 
-                        if in_range:
-                            # Sensor detected something, log this to be returned at the end of the tick
-                            bot_data["sensors"].append({sensor.get_name() : True})
+                        # Sensor detected something, log this to be returned at the end of the tick
+                        bot_data["sensors"].append({sensor.get_name() : angle})
                     elif sensor.get_sub_type() == SensorTypes.LINE:
                         # Simulate linear sensor around bot
                         try:
-                            in_range = self.line_sensor(bot, sensor);
+                            angle = self.line_sensor(bot, sensor);
                         except AttributeError:
-                            break;
+                            continue
 
-                        if in_range:
-                            # Sensor detected something, log this to be returned at the end of the tick
-                            bot_data["sensors"].append({sensor.get_name() : True})
+                        # Sensor detected something, log this to be returned at the end of the tick
+                        bot_data["sensors"].append({sensor.get_name() : angle})
 
-                data["bots"].append(data)
+                
 
                 for actuator in bot.get_actuators():
                     if actuator.get_sub_type == ActuatorTypes.PLACER:
@@ -333,6 +344,8 @@ class Simulator():
 
                             if grabbed:
                                 bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
+
+                data["bots"].append(bot_data)
 
             self.__callback(data)
                 
