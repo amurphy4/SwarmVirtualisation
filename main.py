@@ -1,16 +1,11 @@
 ### Python libraries ###
-import sys, numpy, math
+import sys, numpy, math, Queue, threading, time
 
 ### OpenCV 4.0 required - pip install opencv-contrib ###
 import cv2
 
 ### SwarmTracking module required - https://github.com/amurphy4/SwarmTracking ###
 from SwarmTracking import TrackingController
-
-### PyQt4 modules required - sudo apt-get install python-qt4 ###
-from PyQt4 import uic
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
 
 ### Application specific classes ###
 from enums import *
@@ -21,50 +16,66 @@ from simulator import *
 from networking import *
 from arena_calib import *
 
-qt_creator_file = "main_window.ui"
+frames = Queue.Queue(10)
 
-Ui_MainWindow, QtBaseClass = uic.loadUiType(qt_creator_file)
+class SwarmVirtualisation(threading.Thread):
 
-class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
-
-    def __init__(self, arena_corners):
-        QMainWindow.__init__(self)
-        Ui_MainWindow.__init__(self)
-        self.setupUi(self)
-
+    def __init__(self):
+        threading.Thread.__init__(self)
+        global frames
+        print(threading.current_thread().name)
+        
         self.__tc = TrackingController.getInstance()
+        print(1)
         self.__simulator = Simulator()
+        print(2)
         self.__net = Networking()
+        print(3)
+
+        self.__queue = Queue.Queue()
+        print(4)
+
+        print(threading.current_thread().name)
 
         # Simulation objects
         self.__bots = []
         self.__sensors = []
         self.__actuators = []
         self.__environment = []
-        self.arena_corners = arena_corners
+        self.arena_corners = []
+        self.arena_centre = (0, 0)
 
         self.block = True
+        self.__exit = False
+        self.__calibrated = False
 
         self.__frame = None
 
-        self.__tag_offset = 45
+        self.__tag_offset = 0
         self.__tc.set_tag_offset(self.__tag_offset)
 
-        # Connect signal for callback - kick back to GUI thread
-        self.connect(self, SIGNAL("tracking_callback"), self.tracking_handler)
+        self.start_tracking()
+        #self.start_virtualisation()
 
-        x = 0
-        y = 0
-        for corner in self.arena_corners:
-            x = x + corner[0]
-            y = y + corner[1]
 
-        arena_centre = (int(x / 4), int(y / 4))
+    def run(self):
+        global frames
+        print("run")
+        while not self.__exit:
+##            try:
+            bots, frame = self.__queue.get()
 
-        print(arena_centre)
+            self.tracking_handler(bots, frame)
+                #self.set_camera_frame(frame)
+                
+                
+##            except Exception as e:
+##                print(e)
 
+    def generate_objects(self):
+        print("Generating objects")
         # Create testing environment objects
-        obj = Environment("food", EnvironmentTypes.GOAL, arena_centre, 10)
+        obj = Environment("food", EnvironmentTypes.GOAL, self.arena_centre, 10)
         self.__environment.append(obj)
 
         # Create testing sensor objects
@@ -75,19 +86,20 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
         self.__sensors.append(sensor)
 
-        self.start_tracking()
-        self.start_virtualisation()
-
     def tracking_callback(self, bots, frame):
-        # Emit signal for callback - kick back to GUI thread
-        self.emit(SIGNAL("tracking_callback"), bots, frame)
+        print("callback {0}".format(threading.current_thread().name))
+        self.__queue.put((bots, frame))
+        print(self.__queue.qsize())
 
     def tracking_handler(self, bots, frame):
+        print("handler {0}".format(threading.current_thread().name))
         self.__frame = frame
 
         for bot in self.__bots:
             # Set all bots to invisible so we don't see sensors for bots the system has lost track of
             bot.set_is_visible(False)
+
+        corners = []
         
         # Update bots with new positions etc.
         for bot in bots:
@@ -107,7 +119,21 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
                     advanced_bot.set_is_visible(True)
 
             if not bot_found:
-                if bot.get_id() == 49:
+                if bot.get_id() == 49 and self.__calibrated:
+                    print(bot)
+                    continue
+                elif bot.get_id() == 49:
+                    # Get corners
+                    tl, tr, br, bl = bot.get_corners()
+
+                    print(bot.get_corners())
+
+                    # Calculate centre of the tag
+                    centre = (int((tl.x + tr.x + br.x + bl.x) / 4), int((tl.y + tr.y + br.y + bl.y) / 4))
+
+                    # Add to corners array
+                    corners.append(centre)
+
                     continue
                 
                 # We didn't find the bot - create a new one in our environment
@@ -116,22 +142,23 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
                 # Add all the sensors <-- testing purposes only
                 #new_bot.add_sensor(self.__sensors[0].copy())
                 #new_bot.add_sensor(self.__sensors[1].copy())
-                new_bot.add_sensor(self.__sensors[2].copy())
+                #new_bot.add_sensor(self.__sensors[2].copy())
 
                 # Set sensor for bot 5 to be visible
-                if new_bot.get_id() == 5:
-                    new_bot.get_sensors()[0].set_is_visible(True)
-                    self.output_to_console('Sensor "{0}" set to visible'.format(new_bot.get_sensors()[0].get_name()))
-
+##                if new_bot.get_id() == 5:
+##                    new_bot.get_sensors()[0].set_is_visible(True)
+                    
                 # We've created a bot! Add it to our environment!
                 self.__bots.append(new_bot)
-                self.output_to_console("Discovered bot with ID: {0} at ({1}, {2}). Registering data.".format(new_bot.get_id(), new_bot.get_centre().x, new_bot.get_centre().y))
-                self.output_to_console('Added sensor "{0}" to bot with ID: {1}'.format(self.__sensors[0].get_name(), new_bot.get_id()))
+                
+        self.arena_corners = corners
 
         # Augment frame before converting
         # Add environment objects to overlay
         overlay = frame.copy()
-        overlay = cv2.circle(overlay, self.__environment[0].get_position(), self.__environment[0].get_radius(), (0, 255, 0), -1)
+        for env in self.__environment:
+            print("Env overlay added at ", env.get_position())
+            overlay = cv2.circle(overlay, env.get_position(), env.get_radius(), (0, 255, 0), -1)
         
         # Add sensors to overlay
         for bot in self.__bots:
@@ -206,18 +233,35 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         self.set_camera_frame(frame)
 
     def set_camera_frame(self, frame):
-        # Convert frame to QImage format
-        qtFormat = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888).rgbSwapped()
+        cv2.imshow("Camera", frame)
 
-        # Rescale frame
-        image = qtFormat.scaled(1280, 720, Qt.KeepAspectRatio)
+        key = cv2.waitKey(1)
 
-        # Set camera label with frame
-        self.camera_label.setPixmap(QPixmap.fromImage(image))
+        if key == ord('q'):
+            print("Destroying")
+            cv2.destroyAllWindows()
+            self.stop_tracking()
+            self.__exit = True
+        elif key == ord('r'):
+            # Run experiments
+            pass
+        elif key == ord('c'):
+            # Calibrate
+            print("Calibrating...")
+            x = 0
+            y = 0
+            for corner in self.arena_corners:
+                print("corner found")
+                x = x + corner[0]
+                y = y + corner[1]
+
+            self.arena_centre = (int(x / 4), int(y / 4))
+            print(self.arena_centre)
+            self.__calibrated = True
+            self.generate_objects()
 
     def output_to_console(self, message):
-        # Output information to the GUI console
-        self.txt_console_output.appendPlainText(message)
+        pass
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
@@ -287,6 +331,22 @@ class SwarmVirtualisation(QMainWindow, Ui_MainWindow):
         # Reimplement close event to quit threads on exit
         self.stop_tracking()
 
+class ImageGrabber(threading.Thread):
+    def __init__(self, ID):
+        threading.Thread.__init__(self)
+        self.ID=ID
+        self.cam=cv2.VideoCapture(ID)
+        print("Camera opened")
+
+    def run(self):
+        print("Camera running")
+        global frames
+        while True:
+            ret,frame=self.cam.read()
+            print("Frames")
+            frames.put(frame)
+            time.sleep(0.1)
+
 arena_corners = []
 block = True
 
@@ -298,17 +358,18 @@ def calib_callback(corners):
     print("Unblocking")
 
 def main():
-    calib = ArenaCalib(calib_callback)
+##    calib = ArenaCalib(calib_callback)
+##
+##    while block:
+##        pass
 
-    while block:
-        pass
-    
-    app = QApplication(sys.argv)
-    corners = []
-    window = SwarmVirtualisation(arena_corners)
-    window.arena_corners = arena_corners
-    window.show()
-    sys.exit(app.exec_())
+    print("main")
+    window = SwarmVirtualisation()
+    print("Start thread")
+    window.start()
+
+    window.join()
+    #grabber.join()
 
 if __name__ == "__main__":
     main()
