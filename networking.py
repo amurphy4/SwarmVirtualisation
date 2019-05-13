@@ -51,9 +51,7 @@ class Networking():
         self.counter += 1
 
         if self.counter % 25 == 0:
-            print(self.counter)
             if socket is None:
-                print("Socket is None")
                 return
 
             print("Sending data: {0}".format(self.counter / 10))

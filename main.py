@@ -1,5 +1,5 @@
 ### Python libraries ###
-import sys, numpy, math, Queue, threading, time
+import sys, numpy, math, Queue, threading, time, random
 
 ### OpenCV 4.0 required - pip install opencv-contrib ###
 import cv2
@@ -12,6 +12,7 @@ from enums import *
 from environment import *
 from advanced_bot import *
 from sensor import *
+from actuator import *
 from simulator import *
 from networking import *
 from arena_calib import *
@@ -45,10 +46,19 @@ class SwarmVirtualisation(threading.Thread):
         self.arena_corners = []
         self.arena_centre = (0, 0)
 
+        self.max_x = 0
+        self.min_x = 0
+        self.max_y = 0
+        self.min_y = 0
+
         self.block = True
         self.__exit = False
         self.__calibrated = False
         self.__listening = True
+
+        random.seed(0)
+
+        self.__collected = 0
 
         self.__frame = None
 
@@ -58,6 +68,9 @@ class SwarmVirtualisation(threading.Thread):
         # Create testing sensor objects
         sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=500)
         self.__sensors.append(sensor)
+
+        actuator = Actuator("food_actuator", ActuatorTypes.GRABBER, 100)
+        self.__actuators.append(actuator)
 ##        sensor = Sensor("cone_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
 ##        self.__sensors.append(sensor)
 ##        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
@@ -84,8 +97,32 @@ class SwarmVirtualisation(threading.Thread):
     def generate_objects(self):
         print("Generating objects")
         # Create testing environment objects
-        obj = Environment("food", EnvironmentTypes.GOAL, self.arena_centre, 10)
-        self.__environment.append(obj)
+        for i in range(0, 10):
+            acceptable = False
+            
+            while not acceptable:    
+                x = random.randint(self.min_x, self.max_x)
+                y = random.randint(self.min_y, self.max_y)
+
+                if len(self.__environment) == 0:
+                    acceptable = True
+                    break
+
+                t = False
+                for env in self.__environment:
+                    a = numpy.array((x, y))
+                    b = numpy.array((env.get_position()[0], env.get_position()[1]))
+                    euclid = numpy.linalg.norm(a - b)
+                    print(euclid)
+
+                    if euclid < 150:
+                        t = True
+                        break
+
+                acceptable = not t
+            
+            obj = Environment("food", EnvironmentTypes.GOAL, (x, y), 10, 1)
+            self.__environment.append(obj)
 
     def tracking_callback(self, bots, frame):
         self.__queue.put((bots, frame))
@@ -141,6 +178,11 @@ class SwarmVirtualisation(threading.Thread):
 ##                        copy.set_is_visible(False)
 
                     new_bot.add_sensor(copy)
+
+                for actuator in self.__actuators:
+                    copy = actuator.copy()
+
+                    new_bot.add_actuator(copy)
                     
                 # We've created a bot! Add it to our environment!
                 self.__bots.append(new_bot)
@@ -249,10 +291,29 @@ class SwarmVirtualisation(threading.Thread):
             print("Calibrating...")
             x = 0
             y = 0
+            max_x = 0
+            min_x = 100000
+            max_y = 0
+            min_y = 100000
             for corner in self.arena_corners:
                 print("corner found")
                 x = x + corner[0]
                 y = y + corner[1]
+
+                if corner[0] > max_x:
+                    max_x = corner[0]
+                elif corner[0] < min_x:
+                    min_x = corner[0]
+
+                if corner[1] > max_y:
+                    max_y = corner[1]
+                elif corner[1] < min_y:
+                    min_y = corner[1]
+
+            self.max_x = max_x
+            self.min_x = min_x
+            self.max_y = max_y
+            self.min_y = min_y
 
             self.arena_centre = (int(x / 4), int(y / 4))
             print(self.arena_centre)
@@ -272,10 +333,11 @@ class SwarmVirtualisation(threading.Thread):
             except IndexError:
                 pass
 
-
     def environment_callback(self, env, destroy=None):
+        print("Env callback")
         if destroy:
             self.__environment.remove(env)
+            self.__collected += 1
         else:
             self.__environment.append(env)
 

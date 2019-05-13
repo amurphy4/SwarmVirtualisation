@@ -32,6 +32,7 @@ s.setblocking(0)
 def signal_handler(sig, frame):
 	print('Ctrl+C pressed')
 	ser.write('D,0,0\r\n') # Stop motors
+	ser.readline() # Gobble up output
 	ser.close()
 	s.close() # Close socket when exiting
 	sys.exit(0)
@@ -74,7 +75,8 @@ signal.signal(signal.SIGINT, signal_handler)
 ser.write('K\r\n') # Calibrate proximity sensors
 ser.readline() # Gobble up output
 ser.readline() # Gobble up output
-
+ser.write('D,0,0\r\n')
+ser.readline() # Gobble up output
 # try:
 # 	# Try to accept a connection request (exception caught if none present)
 # 	c, addr = s.accept()

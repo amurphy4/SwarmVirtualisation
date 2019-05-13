@@ -3,9 +3,9 @@ from enums import VirtualObjectTypes
 
 class Actuator(VirtualObject):
 
-    def __init__(self, actuator_type, capacity=None, ticks_per_place=None, obj=None):
+    def __init__(self, name, actuator_type, capacity=None, ticks_per_place=None, obj=None):
 
-        VirtualObject.__init__(self)
+        VirtualObject.__init__(self, name)
 
         self.set_object_type(VirtualObjectTypes.ACTUATOR)
 

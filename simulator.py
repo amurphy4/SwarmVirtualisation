@@ -1,5 +1,8 @@
 import cv2, numpy, threading, math
 
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+
 from enums import *
 
 class Simulator():
@@ -270,6 +273,7 @@ class Simulator():
 
     def grabber(self, bot, actuator):
         centre = bot.get_centre()
+        tl, tr, br, bl = bot.get_corners()
         height = self.__frame.shape[0]
         width = self.__frame.shape[1]
 
@@ -285,11 +289,15 @@ class Simulator():
             points = numpy.transpose(numpy.where(img == 255))
 
             for point in points:
-                if (point[0] == centre.x) and (point[1] == centre.y):
+                p = Point(point[1], point[0])
+                poly = Polygon([(tl.x, tl.y), (tr.x, tr.y), (br.x, br.y), (bl.x, bl.y)])
+
+                if poly.contains(p):
                     env.set_capacity(env.get_capacity() - 1)
 
-                    if env.get_capacity == 0:
-                        self.__interaction(env, True)
+                    self.__interaction(env, True)
+
+                    bot.set_collected(bot.get_collected() + 1)
                         
                     return actuator.add_to_inventory(env.copy())
                     
@@ -339,18 +347,23 @@ class Simulator():
                 
 
                 for actuator in bot.get_actuators():
-                    if actuator.get_sub_type == ActuatorTypes.PLACER:
-                        placed = placer(bot, actuator)
+                    if actuator.get_sub_type() == ActuatorTypes.PLACER:
+                        placed = self.placer(bot, actuator)
                         
                         if placed:
                             bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
-                    elif actuator.get_sub_type == ActuatorTypes.GRABBER:
-                        if actuator.get_capacity() > len(actuator.get_inventory()):
-                            grabbed = grabber(bot, actuator)
+                    elif actuator.get_sub_type() == ActuatorTypes.GRABBER:
+                        try:
+                            grabbed = self.grabber(bot, actuator)
 
                             if grabbed:
+                                print(grabbed)
                                 bot_data["actuators"].append({actuator.get_name() : {actuator.get_sub_type() : True}})
 
+                        except AttributeError as e:
+                            print(e)
+                            pass
+                        
                 data["bots"].append(bot_data)
 
             self.__callback(data)

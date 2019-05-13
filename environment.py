@@ -16,6 +16,9 @@ class Environment(VirtualObject):
         self.__capacity = capacity
         self.__is_visible = False
 
+        if self.__capacity is None:
+            self.__capacity = 1
+
     def get_position(self):
         return self.__position
 

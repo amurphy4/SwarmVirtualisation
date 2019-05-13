@@ -16,6 +16,8 @@ class Bot(B):
 
         self.__ip = None
 
+        self.__collected = 0
+
     def get_sensors(self):
         return self.__sensors
 
@@ -29,7 +31,7 @@ class Bot(B):
         return self.__actuators
 
     def add_actuator(self, actuator):
-        return self.append(actuator)
+        return self.__actuators.append(actuator)
 
     def remove_actuator(self, actuator):
         return self.remove(actuator)
@@ -45,3 +47,9 @@ class Bot(B):
 
     def set_is_visible(self, is_visible):
         self.__is_visible = is_visible
+
+    def get_collected(self):
+        return self.__collected
+
+    def set_collected(self, collected):
+        self.__collected = collected
