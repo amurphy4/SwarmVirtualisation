@@ -48,6 +48,7 @@ class SwarmVirtualisation(threading.Thread):
         self.block = True
         self.__exit = False
         self.__calibrated = False
+        self.__listening = True
 
         self.__frame = None
 
@@ -55,12 +56,12 @@ class SwarmVirtualisation(threading.Thread):
         self.__tc.set_tag_offset(self.__tag_offset)
 
         # Create testing sensor objects
-        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=5000)
+        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=500)
         self.__sensors.append(sensor)
-        sensor = Sensor("cone_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
-        self.__sensors.append(sensor)
-        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
-        self.__sensors.append(sensor)
+##        sensor = Sensor("cone_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
+##        self.__sensors.append(sensor)
+##        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
+##        self.__sensors.append(sensor)
 
         self.start_tracking()
         self.start_virtualisation()
@@ -229,6 +230,9 @@ class SwarmVirtualisation(threading.Thread):
         cv2.imshow("Camera", frame)
 
         key = cv2.waitKey(1)
+        
+        if self.__listening:
+            self.__net.listen()
 
         if key == ord('q'):
             print("Destroying")
@@ -238,6 +242,8 @@ class SwarmVirtualisation(threading.Thread):
         elif key == ord('r'):
             # Run experiments
             pass
+        elif key == ord('n'):
+            self.__listening = False
         elif key == ord('c'):
             # Calibrate
             print("Calibrating...")
@@ -258,10 +264,14 @@ class SwarmVirtualisation(threading.Thread):
 
     def virtualisation_callback(self, data):
        # Handle sensor and actuator data returned here
-       #print(data["bots"])
-##       socket = self.__net.get_socket("BOT IP ADDRESS")
-##       self.__net.send_data(socket, data)
-       pass
+        if self.__calibrated:
+            try:
+    ##            print(data["bots"][0]["sensors"][0])
+    ##            print("V Callback")
+                self.__net.send_data("192.168.100.200", data["bots"][0]["sensors"][0])
+            except IndexError:
+                pass
+
 
     def environment_callback(self, env, destroy=None):
         if destroy:

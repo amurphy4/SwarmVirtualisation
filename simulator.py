@@ -90,18 +90,16 @@ class Simulator():
                     centre = bot.get_centre()
                     p1 = (front.x - centre.x, front.y - centre.y)
                     p2 = (point[1] - centre.x, point[0] - centre.y)
-##                    p1 = (1, 0)
-##                    p2 = (point[1], point[0])
-                    #print(p1, p2)
-                    dot = self.angle(p1, p2)
+
                     atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
 
                     if atan > 180:
                         atan = atan - 360
+                    elif atan < -180:
+                        atan = atan + 360
 
                     atan = -atan
 
-                    print(atan)
                     return atan
 
         # Not in range
@@ -159,10 +157,21 @@ class Simulator():
                 for env_point in env:
                     if (point[0] == env_point[0]) and (point[1] == env_point[1]):
                         # If sensor point is in the environment points list return True - I apologise to the processor
-                        front = bot.get_front()
-                        p1 = (front.x, front.y)
-                        p2 = env_point
-                        return angle(p1, p2)
+                        front = bot.get_front_point()
+                        centre = bot.get_centre()
+                        p1 = (front.x - centre.x, front.y - centre.y)
+                        p2 = (point[1] - centre.x, point[0] - centre.y)
+
+                        atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
+
+                        if atan > 180:
+                            atan = atan - 360
+
+                        atan = -atan
+
+                        print(atan)
+
+                        return atan
 
         # Not in range of any environment objects
         return False
@@ -230,10 +239,7 @@ class Simulator():
                 for env_point in env:
                     if (point[0] == env_point[0]) and (point[1] == env_point[1]):
                         # If sensor point is in the environment points list return True - I apologise to the processor
-                        front = bot.get_front()
-                        p1 = (front.x, front.y)
-                        p2 = env_point
-                        return angle(p1, p2)
+                        return sensor.get_angle_offset()
 
         # Not in range of any environment objects
         return False
