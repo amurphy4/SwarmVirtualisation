@@ -57,6 +57,8 @@ class SwarmVirtualisation(threading.Thread):
         self.__listening = True
         self.__run = False
 
+        self.__timer = threading.Timer(300.0, self.timer_callback)
+
         random.seed(0)
 
         self.__collected = 0
@@ -115,7 +117,7 @@ class SwarmVirtualisation(threading.Thread):
                     b = numpy.array((env.get_position()[0], env.get_position()[1]))
                     euclid = numpy.linalg.norm(a - b)
 
-                    if euclid < 150:
+                    if euclid < 100:
                         t = True
                         break
 
@@ -124,6 +126,22 @@ class SwarmVirtualisation(threading.Thread):
             obj = Environment("food", EnvironmentTypes.GOAL, (x, y), 5, 1)
             self.__environment.append(obj)
             print("Generated object")
+
+    def timer_callback(self):
+        self.stop_tracking()
+        self.__net.close()
+        self.__exit = True
+
+        cv2.destroyAllWindows()
+
+        time.sleep(1)
+        
+        print("Timer callback!")
+        for bot in self.__bots:
+            print("Bot %d collected %d food items!" % (bot.get_id(), bot.get_collected()))
+
+        print
+        print("Total food items collected: %d" % self.__collected)
 
     def tracking_callback(self, bots, frame):
         self.__queue.put((bots, frame))
@@ -293,6 +311,7 @@ class SwarmVirtualisation(threading.Thread):
             print("Destroying")
             cv2.destroyAllWindows()
             self.stop_tracking()
+            self.__net.close()
             self.__exit = True
         elif key == ord('r'):
             # Run experiments
@@ -332,6 +351,7 @@ class SwarmVirtualisation(threading.Thread):
             print(self.arena_centre)
             self.__calibrated = True
             self.generate_objects(10)
+            self.__timer.start()
 
     def output_to_console(self, message):
         pass
@@ -343,15 +363,12 @@ class SwarmVirtualisation(threading.Thread):
                 for bot in data["bots"]:
                     bot_id = bot["id"]
                     
-
                     bot["run"] = self.__run
 
                     ip = ""
                     for bots in self.__bots:
                         if bots.get_id() == bot_id:
                             ip = bots.get_ip()
-                            
-                    print("Bot: %s" % ip)
 
                     if ip != "":
                         msg = {"sensors" : bot["sensors"], "run" : bot["run"]}
