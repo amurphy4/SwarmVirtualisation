@@ -128,6 +128,10 @@ class SwarmVirtualisation(threading.Thread):
             print("Generated object")
 
     def timer_callback(self):
+        self.__run = False
+
+        time.sleep(1)
+        
         self.stop_tracking()
         self.__net.close()
         self.__exit = True
