@@ -55,6 +55,7 @@ class SwarmVirtualisation(threading.Thread):
         self.__exit = False
         self.__calibrated = False
         self.__listening = True
+        self.__run = False
 
         random.seed(0)
 
@@ -66,7 +67,7 @@ class SwarmVirtualisation(threading.Thread):
         self.__tc.set_tag_offset(self.__tag_offset)
 
         # Create testing sensor objects
-        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=500)
+        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=100)
         self.__sensors.append(sensor)
 
         actuator = Actuator("food_actuator", ActuatorTypes.GRABBER, 100)
@@ -94,10 +95,10 @@ class SwarmVirtualisation(threading.Thread):
 ##            except Exception as e:
 ##                print(e)
 
-    def generate_objects(self):
+    def generate_objects(self, count):
         print("Generating objects")
         # Create testing environment objects
-        for i in range(0, 10):
+        for i in range(0, count):
             acceptable = False
             
             while not acceptable:    
@@ -113,7 +114,6 @@ class SwarmVirtualisation(threading.Thread):
                     a = numpy.array((x, y))
                     b = numpy.array((env.get_position()[0], env.get_position()[1]))
                     euclid = numpy.linalg.norm(a - b)
-                    print(euclid)
 
                     if euclid < 150:
                         t = True
@@ -121,8 +121,9 @@ class SwarmVirtualisation(threading.Thread):
 
                 acceptable = not t
             
-            obj = Environment("food", EnvironmentTypes.GOAL, (x, y), 10, 1)
+            obj = Environment("food", EnvironmentTypes.GOAL, (x, y), 5, 1)
             self.__environment.append(obj)
+            print("Generated object")
 
     def tracking_callback(self, bots, frame):
         self.__queue.put((bots, frame))
@@ -183,6 +184,18 @@ class SwarmVirtualisation(threading.Thread):
                     copy = actuator.copy()
 
                     new_bot.add_actuator(copy)
+
+                # Assign IP addresses
+                if new_bot.get_id() == 0:
+                    new_bot.set_ip("192.168.100.200")
+                elif new_bot.get_id() == 1:
+                    new_bot.set_ip("192.168.100.201")
+                elif new_bot.get_id() == 2:
+                    new_bot.set_ip("192.168.100.202")
+                elif new_bot.get_id() == 3:
+                    new_bot.set_ip("192.168.100.203")
+                elif new_bot.get_id() == 4:
+                    new_bot.set_ip("192.168.100.204")
                     
                 # We've created a bot! Add it to our environment!
                 self.__bots.append(new_bot)
@@ -283,7 +296,7 @@ class SwarmVirtualisation(threading.Thread):
             self.__exit = True
         elif key == ord('r'):
             # Run experiments
-            pass
+            self.__run = not self.__run
         elif key == ord('n'):
             self.__listening = False
         elif key == ord('c'):
@@ -318,7 +331,7 @@ class SwarmVirtualisation(threading.Thread):
             self.arena_centre = (int(x / 4), int(y / 4))
             print(self.arena_centre)
             self.__calibrated = True
-            self.generate_objects()
+            self.generate_objects(10)
 
     def output_to_console(self, message):
         pass
@@ -327,9 +340,23 @@ class SwarmVirtualisation(threading.Thread):
        # Handle sensor and actuator data returned here
         if self.__calibrated:
             try:
-    ##            print(data["bots"][0]["sensors"][0])
-    ##            print("V Callback")
-                self.__net.send_data("192.168.100.200", data["bots"][0]["sensors"][0])
+                for bot in data["bots"]:
+                    bot_id = bot["id"]
+                    
+
+                    bot["run"] = self.__run
+
+                    ip = ""
+                    for bots in self.__bots:
+                        if bots.get_id() == bot_id:
+                            ip = bots.get_ip()
+                            
+                    print("Bot: %s" % ip)
+
+                    if ip != "":
+                        msg = {"sensors" : bot["sensors"], "run" : bot["run"]}
+                        self.__net.send_data(ip, msg)
+                        
             except IndexError:
                 pass
 
@@ -338,6 +365,7 @@ class SwarmVirtualisation(threading.Thread):
         if destroy:
             self.__environment.remove(env)
             self.__collected += 1
+            self.generate_objects(1)
         else:
             self.__environment.append(env)
 

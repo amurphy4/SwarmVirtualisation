@@ -4,7 +4,7 @@ import signal
 import sys
 import errno
 
-MAX_SPEED = 1000
+MAX_SPEED = 1000 / 4
 weights_left = [-10, -10, -5, 0, 0, 5, 10, 10]
 weights_right = [-1 * x for x in weights_left]
 
@@ -13,7 +13,7 @@ print weights_right
 
 ser = serial.Serial('/dev/ttyS2', 230400)
 
-# Set up socket 
+# Set up socket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
@@ -37,38 +37,33 @@ def signal_handler(sig, frame):
 	s.close() # Close socket when exiting
 	sys.exit(0)
 
-def msg_length():
-        data = read(4)
-        print(data)
-        size = struct.unpack('=I', data)
-        return size[0]
+def stop():
+        ser.write('D,0,0\r\n') # Stop motors
+	ser.readline() # Gobble up output
 
-def read(size):
-        data = ''
-        print("Size: %d" % size)
-        
-        while len(data) < size:
-                dataTmp = s.recv(size - len(data))
-                data += dataTmp
+def unpad_data(data):
+        result = data.split('@')
+        return result[0]
 
-                if dataTmp == '':
-                        raise RuntimeError("Connection broken")
+def read():
+	data = ''
+	# print("Size: %d" % size)
 
-        return data
+	while len(data) < 512:
+		dataTmp = s.recv(512)
+		data += dataTmp
+
+	if dataTmp == '':
+		stop()
+
+	return data
 
 def get_data():
-        size = msg_length()
-        
-        if size > 1024:
-                return
-        
-        data = read(size)
+        data = read()
 
-        frmt = "=%ds" % size
+        msg = unpad_data(data)
 
-        msg = struct.unpack(frmt, data)
-
-        return json.loads(msg[0])
+	return json.loads(msg)
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -83,35 +78,46 @@ ser.readline() # Gobble up output
 # 	s.setblocking(0)
 # except socket.error:
 # 	pass
-
+angle = 0
+run = False
 counter = 0
 while True:
-
-	angle = 0
-
+        angle = 0
+        recv = False
+        
 	data = ""
 
 	# Receive data to process
 	# data = c.recv(1024)
 	try:
-        	data = get_data()
-        except IOError as e:
-                if e.errno == errno.EWOULDBLOCK:
-                        pass
+		data = get_data()
+	except IOError as e:
+		if e.errno == errno.EWOULDBLOCK:
+			pass
+	except ValueError as e:
+                print(e)
 
 	if data != "" and data is not None:
-		print(data)
-##		data = data.decode('utf-8')
-##		print(data)
-##		data = json.loads(data)
-##		print(data)
+                try:
+                        recv = True
+                        print(data)
+        ##		data = data.decode('utf-8')
+        ##		print(data)
+        ##		data = json.loads(data)
+        ##		print(data)
 
-		angle = float(data["circle_sensor"])
+                        angle = float(data["sensors"][0]["circle_sensor"])
+                        run = data["run"]
+                except ValueError as e:
+                        print(e)
+
 		print(angle)
 
 	counter += 1
 
-        print("Test: {0}".format(counter))
+	print(counter)
+
+	# print("Test: {0}".format(counter))
 
 	ser.write('N\r\n')  # Request IR sensor readings
 	ir = ser.readline() # Get IR sensor reading string
@@ -120,34 +126,28 @@ while True:
 	ir = map(int, ir)   # Convert characters to integers
 	# print ir
 
-	# left = right = 400
-
-	# # Obstacle avoidance
-	# for i, reading in enumerate(ir):
-	# 	left += weights_left[i] * reading
-	# 	right += weights_right[i] * reading
-
-	# if left > MAX_SPEED:
-	# 	left = MAX_SPEED
-	# elif left < -MAX_SPEED:
-	# 	left = -MAX_SPEED
-
-	# if right > MAX_SPEED:
-	# 	right = MAX_SPEED
-	# elif right < -MAX_SPEED:
-	# 	right = -MAX_SPEED
-
-	#test
-	MAX_SPEED = 500
-
 	left = right = MAX_SPEED
 
-	if(angle > 5):
-		left = MAX_SPEED
-		right = MAX_SPEED / 8
-	elif(angle < -5):
-		left = MAX_SPEED / 8
-		right = MAX_SPEED
+	avoiding = False
+
+	# Obstacle avoidance
+	for i, reading in enumerate(ir):
+		if reading > 300:
+			avoiding = True
+			left += weights_left[i] * reading
+			right += weights_right[i] * reading
+
+	if not avoiding:
+                if recv:
+                        if(angle > 10):
+                                left = MAX_SPEED * 2
+                                right = -MAX_SPEED * 2
+                        elif(angle < -10):
+                                left = -MAX_SPEED * 2
+                                right = MAX_SPEED * 2
+
+        if not run:
+                left = right = 0
 
 	ser.write('D,' + str(left) + ',' + str(right) + '\r\n') # Set wheel speeds
 	ser.readline() # Gobble up output

@@ -13,7 +13,14 @@ class Networking():
         self.s.bind(('', self.__port))
         self.s.listen(5)
 
-        self.counter = 0
+        self.counter = {
+            "192.168.100.200" : 0,
+            "192.168.100.201" : 0,
+            "192.168.100.202" : 0,
+            "192.168.100.203" : 0,
+            "192.168.100.204" : 0
+        }
+            
 
         #self.connect("192.168.100.200")
 
@@ -47,31 +54,41 @@ class Networking():
                 return socket
 
     def send_data(self, addr, data):
-        socket = self.get_socket(addr)
-        self.counter += 1
+        valid = False
+        for key in self.counter:
+            if addr == key:
+                valid = True
 
-        if self.counter % 25 == 0:
+        if not valid:
+            return
+
+        socket = self.get_socket(addr)
+        
+        self.counter[addr] += 1
+
+        if self.counter[addr] % 60 == 0:
+            print(data)
             if socket is None:
                 return
 
-            print("Sending data: {0}".format(self.counter / 10))
+            print("Sending data: {0}".format(self.counter[addr] / 50))
 
-            for obj in self.encode_json(data):
-                print("Size: %d" % len(obj))
-                sent = 0
-                while sent < len(data):
-                    sent += socket.send(obj[sent:])
+            msg = self.encode_json(data)
+            sent = 0
+            while sent < len(msg):
+                sent += socket.send(msg[sent:])
 
     def encode_json(self, data):
-        msg = json.dumps(data)
-        frmt = "=%ds" % len(msg)
+        msg = self.pad_data(json.dumps(data), 512)
+        
+        return msg
 
-        packedMsg = struct.pack(frmt, msg)
-        packedHdr = struct.pack('=I', len(packedMsg))
+    def pad_data(self, data, length):
+        print(data)
+        while length > len(data):
+            data = data + '@'
 
-        print(packedHdr, packedMsg)
-                                
-        return (packedHdr, packedMsg)
+        return data
 
     def close(self):
         for socket in self.__sockets:

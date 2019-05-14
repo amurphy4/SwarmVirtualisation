@@ -1,4 +1,4 @@
-import cv2, numpy, threading, math
+import cv2, numpy, threading, math, time
 
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -64,46 +64,35 @@ class Simulator():
         return math.degrees(math.acos(dot / (len1 * len2)))
 
     def circle_sensor(self, bot, sensor):
-        height = self.__frame.shape[0]
-        width = self.__frame.shape[1]
+        point1 = Point(bot.get_centre().x, bot.get_centre().y)
 
-        # Create blank mask
-        img = numpy.zeros((height, width), numpy.uint8)
+        circle = point1.buffer(sensor.get_radius())
 
         env_points = []
 
         # Identify points for all environment objects 
         for env in self.__environment:
-            # Add circle for environment object
-            cv2.circle(img, env.get_position(), env.get_radius(), 255)
+            point2 = Point(env.get_position()[0], env.get_position()[1])
+            a = numpy.array(env.get_position())
+            b = numpy.array((bot.get_centre().x, bot.get_centre().y))
+            dist = numpy.linalg.norm(a - b)
 
-            # Identify circle using mask
-            points = numpy.transpose(numpy.where(img == 255))
-            env_points.append(points)
+            if dist < sensor.get_radius():
+                front = bot.get_front_point()
+                centre = bot.get_centre()
+                p1 = (front.x - centre.x, front.y - centre.y)
+                p2 = (env.get_position()[0] - centre.x, env.get_position()[1] - centre.y)
 
-        for points in env_points:
-            for point in points:
-                a = numpy.array((point[1], point[0]))
-                b = numpy.array((bot.get_centre().x, bot.get_centre().y))
-                euclid = numpy.linalg.norm(a - b)
+                atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
 
-                if (euclid <= sensor.get_radius()):
-                    # In range!
-                    front = bot.get_front_point()
-                    centre = bot.get_centre()
-                    p1 = (front.x - centre.x, front.y - centre.y)
-                    p2 = (point[1] - centre.x, point[0] - centre.y)
+                if atan > 180:
+                    atan = atan - 360
+                elif atan < -180:
+                    atan = atan + 360
 
-                    atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
+                atan = -atan
 
-                    if atan > 180:
-                        atan = atan - 360
-                    elif atan < -180:
-                        atan = atan + 360
-
-                    atan = -atan
-
-                    return atan
+                return atan
 
         # Not in range
         return False
@@ -274,44 +263,42 @@ class Simulator():
     def grabber(self, bot, actuator):
         centre = bot.get_centre()
         tl, tr, br, bl = bot.get_corners()
-        height = self.__frame.shape[0]
-        width = self.__frame.shape[1]
-
-        # Create blank mask
-        img = numpy.zeros((height, width), numpy.uint8)
 
         # Identify points for all environment objects 
         for env in self.__environment:
             # Add circle for environment object
-            cv2.circle(img, env.get_position(), env.get_radius(), 255)
+##            cv2.circle(img, env.get_position(), env.get_radius(), 255)
+##
+##            # Identify circle using mask
+##            points = numpy.transpose(numpy.where(img == 255))
 
-            # Identify circle using mask
-            points = numpy.transpose(numpy.where(img == 255))
+            p = Point(env.get_position())
+            poly = Polygon([(tl.x, tl.y), (tr.x, tr.y), (br.x, br.y), (bl.x, bl.y)])
 
-            for point in points:
-                p = Point(point[1], point[0])
-                poly = Polygon([(tl.x, tl.y), (tr.x, tr.y), (br.x, br.y), (bl.x, bl.y)])
+            if poly.contains(p):
+                env.set_capacity(env.get_capacity() - 1)
 
-                if poly.contains(p):
-                    env.set_capacity(env.get_capacity() - 1)
+                self.__interaction(env, True)
 
-                    self.__interaction(env, True)
-
-                    bot.set_collected(bot.get_collected() + 1)
-                        
-                    return actuator.add_to_inventory(env.copy())
+                bot.set_collected(bot.get_collected() + 1)
+                    
+                return actuator.add_to_inventory(env.copy())
                     
 
     def _simulate(self):
         while self.__looping:
             #SIMULATE SHIT
 
+            print("Simulation")
+
+            start = time.time()
+
             self.get_data()
 
             data = {"bots" : []}
 
-            for bot in self.__bots:                
-                bot_data = {"id" : bot.get_id(), "sensors" : [], "actuators" : []}
+            for bot in self.__bots:
+                bot_data = {"id" : bot.get_id(), "sensors" : [], "actuators" : [], "run" : False}
                 # Simulate sensors for each bot
                 for sensor in bot.get_sensors():
                     # Simulate sensor
@@ -365,6 +352,10 @@ class Simulator():
                             pass
                         
                 data["bots"].append(bot_data)
+
+            end = time.time()
+
+            print("Time: %f" % (end - start))
 
             self.__callback(data)
                 
