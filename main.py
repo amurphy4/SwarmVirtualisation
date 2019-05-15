@@ -59,7 +59,7 @@ class SwarmVirtualisation(threading.Thread):
 
         self.__timer = threading.Timer(300.0, self.timer_callback)
 
-        random.seed(0)
+        random.seed(1)
 
         self.__collected = 0
 
@@ -316,6 +316,7 @@ class SwarmVirtualisation(threading.Thread):
             cv2.destroyAllWindows()
             self.stop_tracking()
             self.__net.close()
+            self.__timer = None
             self.__exit = True
         elif key == ord('r'):
             # Run experiments
@@ -376,6 +377,8 @@ class SwarmVirtualisation(threading.Thread):
 
                     if ip != "":
                         msg = {"sensors" : bot["sensors"], "run" : bot["run"]}
+                        if len(self.__sensors) == 0:
+                            msg["sensors"].append({"circle_sensor" : False})
                         self.__net.send_data(ip, msg)
                         
             except IndexError:

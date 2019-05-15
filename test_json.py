@@ -63,6 +63,8 @@ def get_data():
 
         msg = unpad_data(data)
 
+        print(msg)
+
 	return json.loads(msg)
 
 signal.signal(signal.SIGINT, signal_handler)

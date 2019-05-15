@@ -9,6 +9,8 @@ class Networking():
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.setblocking(0)
+
+        self.time_of_last_packet = time.time()
         
         self.s.bind(('', self.__port))
         self.s.listen(5)
@@ -66,8 +68,13 @@ class Networking():
         
         self.counter[addr] += 1
 
-        if self.counter[addr] % 60 == 0:
+        current_time = time.time()
+
+        since_last = current_time - self.time_of_last_packet
+
+        if since_last >= 0.1:
             print(data)
+            self.time_of_last_packet = current_time
             if socket is None:
                 return
 
