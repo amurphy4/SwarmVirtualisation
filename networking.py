@@ -52,8 +52,11 @@ class Networking():
 
     def get_socket(self, addr):
         for socket in self.__sockets:
+            print(socket.getpeername())
             if socket.getpeername()[0] == addr:
                 return socket
+
+        print("Socket not found")
 
     def send_data(self, addr, data):
         valid = False
@@ -73,12 +76,11 @@ class Networking():
         since_last = current_time - self.time_of_last_packet
 
         if since_last >= 0.1:
-            print(data)
             self.time_of_last_packet = current_time
             if socket is None:
                 return
 
-            print("Sending data: {0}".format(self.counter[addr] / 50))
+            print("Sending data: {0}".format(data))
 
             msg = self.encode_json(data)
             sent = 0

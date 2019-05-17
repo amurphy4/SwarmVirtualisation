@@ -100,10 +100,12 @@ class SwarmVirtualisation(threading.Thread):
     def generate_objects(self, count):
         print("Generating objects")
         # Create testing environment objects
+        counter = 0
         for i in range(0, count):
             acceptable = False
             
-            while not acceptable:    
+            while not acceptable:
+                print("Unacceptable")
                 x = random.randint(self.min_x, self.max_x)
                 y = random.randint(self.min_y, self.max_y)
 
@@ -120,6 +122,12 @@ class SwarmVirtualisation(threading.Thread):
                     if euclid < 100:
                         t = True
                         break
+
+                counter += 1
+
+                if (counter > 1000):
+                    print("Failed to generate points")
+                    return
 
                 acceptable = not t
             
@@ -377,6 +385,7 @@ class SwarmVirtualisation(threading.Thread):
 
                     if ip != "":
                         msg = {"sensors" : bot["sensors"], "run" : bot["run"]}
+##                        print("Sending %s to %s" % (msg, ip))
                         if len(self.__sensors) == 0:
                             msg["sensors"].append({"circle_sensor" : False})
                         self.__net.send_data(ip, msg)
