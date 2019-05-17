@@ -131,7 +131,7 @@ class SwarmVirtualisation(threading.Thread):
 
                 acceptable = not t
             
-            obj = Environment("food", EnvironmentTypes.GOAL, (x, y), 5, 1)
+            obj = Environment("food", EnvironmentTypes.GOAL, (x, y), 7, 1)
             self.__environment.append(obj)
             print("Generated object")
 

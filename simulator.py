@@ -266,16 +266,18 @@ class Simulator():
 
         # Identify points for all environment objects 
         for env in self.__environment:
-            # Add circle for environment object
-##            cv2.circle(img, env.get_position(), env.get_radius(), 255)
-##
-##            # Identify circle using mask
-##            points = numpy.transpose(numpy.where(img == 255))
 
             p = Point(env.get_position())
-            poly = Polygon([(tl.x, tl.y), (tr.x, tr.y), (br.x, br.y), (bl.x, bl.y)])
 
-            if poly.contains(p):
+            a = numpy.array((tl.x, tl.y))
+            b = numpy.array((bot.get_centre().x, bot.get_centre().y))
+            radius = numpy.linalg.norm(a - b) + 5
+
+            a = numpy.array(env.get_position())
+            b = numpy.array((bot.get_centre().x, bot.get_centre().y))
+            dist = numpy.linalg.norm(a - b)
+
+            if dist <= radius:
                 env.set_capacity(env.get_capacity() - 1)
 
                 self.__interaction(env, True)
