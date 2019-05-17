@@ -16,11 +16,11 @@ class Networking():
         self.s.listen(5)
 
         self.counter = {
-            "192.168.100.200" : 0,
-            "192.168.100.201" : 0,
-            "192.168.100.202" : 0,
-            "192.168.100.203" : 0,
-            "192.168.100.204" : 0
+            "192.168.100.200" : self.time_of_last_packet,
+            "192.168.100.201" : self.time_of_last_packet,
+            "192.168.100.202" : self.time_of_last_packet,
+            "192.168.100.203" : self.time_of_last_packet,
+            "192.168.100.204" : self.time_of_last_packet
         }
             
 
@@ -68,15 +68,13 @@ class Networking():
             return
 
         socket = self.get_socket(addr)
-        
-        self.counter[addr] += 1
 
         current_time = time.time()
 
-        since_last = current_time - self.time_of_last_packet
+        since_last = current_time - self.counter[addr]
 
         if since_last >= 0.1:
-            self.time_of_last_packet = current_time
+            self.counter[addr] = current_time
             if socket is None:
                 return
 
