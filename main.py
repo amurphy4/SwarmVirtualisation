@@ -69,13 +69,13 @@ class SwarmVirtualisation(threading.Thread):
         self.__tc.set_tag_offset(self.__tag_offset)
 
         # Create testing sensor objects
-        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=100)
-        self.__sensors.append(sensor)
+##        sensor = Sensor("circle_sensor", SensorTypes.CIRCLE, radius=100)
+##        self.__sensors.append(sensor)
 
         actuator = Actuator("food_actuator", ActuatorTypes.GRABBER, 100)
         self.__actuators.append(actuator)
-##        sensor = Sensor("cone_sensor", SensorTypes.CONE, radius=50, angle_offset=0, cone_angle=75)
-##        self.__sensors.append(sensor)
+        sensor = Sensor("circle_sensor", SensorTypes.CONE, radius=100, angle_offset=0, cone_angle=90)
+        self.__sensors.append(sensor)
 ##        sensor = Sensor("line_sensor", SensorTypes.LINE, _range=50, angle_offset=90)
 ##        self.__sensors.append(sensor)
 
@@ -324,11 +324,15 @@ class SwarmVirtualisation(threading.Thread):
             cv2.destroyAllWindows()
             self.stop_tracking()
             self.__net.close()
+            self.__run = False
             self.__timer = None
             self.__exit = True
         elif key == ord('r'):
             # Run experiments
             self.__run = not self.__run
+
+            # Start timer - COMMENT THIS OUT IF YOU WANT TO RUN INDEFINITELY (OR UNTIL 'Q' IS PRESSED)
+            self.__timer.start()
         elif key == ord('n'):
             self.__listening = False
         elif key == ord('c'):
@@ -364,7 +368,6 @@ class SwarmVirtualisation(threading.Thread):
             print(self.arena_centre)
             self.__calibrated = True
             self.generate_objects(10)
-            self.__timer.start()
 
     def output_to_console(self, message):
         pass

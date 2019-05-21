@@ -52,7 +52,7 @@ class Networking():
 
     def get_socket(self, addr):
         for socket in self.__sockets:
-            print(socket.getpeername())
+            #print(socket.getpeername())
             if socket.getpeername()[0] == addr:
                 return socket
 
@@ -78,7 +78,7 @@ class Networking():
             if socket is None:
                 return
 
-            print("Sending data: {0}".format(data))
+            #print("Sending data: {0}".format(data))
 
             msg = self.encode_json(data)
             sent = 0

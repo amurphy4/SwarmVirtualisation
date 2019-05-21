@@ -1,4 +1,4 @@
-import cv2, numpy, threading, math, time
+import cv2, numpy, threading, math, time, random
 
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -92,78 +92,90 @@ class Simulator():
 
                 atan = -atan
 
+                # Gaussian randomised
+##                rand = random.gauss(atan, 3.5)
+##                atan = rand
+
                 return atan
 
         # Not in range
         return False
 
     def cone_sensor(self, bot, sensor):
-        height = self.__frame.shape[0]
-        width = self.__frame.shape[1]
+##        height = self.__frame.shape[0]
+##        width = self.__frame.shape[1]
+##
+##        # Create blank mask
+##        img = numpy.zeros((height, width), numpy.uint8)
+##
+##        # Get positions from bot to calculate tag offset
+##        front = bot.get_front_point()
+##        centre = bot.get_centre()
+##
+##        # Calculate tag offset with respect to Y axis
+##        a = numpy.array((front.x, front.y))
+##        b = numpy.array((centre.x, centre.y))
+##        dist = numpy.linalg.norm(a - b)
+##
+##        pointY = centre.y + dist
+##
+##        # Calculate angle between top of tag and Y axis
+##        result = math.atan2(pointY - centre.y, centre.x - centre.x) + math.atan2(front.y - centre.y, front.x - centre.x)
+##        angle = math.degrees(result)
+##
+##        # Calculate start and end angles for cone sensor
+##        start_angle = angle - int(sensor.get_cone_angle() / 2) + sensor.get_angle_offset()
+##        end_angle = start_angle + sensor.get_cone_angle()
+##
+##        # Add sensor to image
+##        radius = sensor.get_radius()
+##        cv2.ellipse(img, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, 255) - 90 + self.__tag_offset
+##
+##        # Get all points in sensor range
+##        sensor_points = numpy.transpose(numpy.where(img == 255))
+##
+##        # Re-create blank mask
+##        img = numpy.zeros((height, width), numpy.uint8)
+##
+##        env_points = []
+##        for env in self.__environment:
+##            # Add circle for environment object
+##            cv2.circle(img, env.get_position(), env.get_radius(), 255)
+##
+##            # Identify circle using mask
+##            points = numpy.transpose(numpy.where(img == 255))
+##            env_points.append(points)
+##
+##        for point in sensor_points:
+##            # Loop over sensor points
+##            for env in env_points:
+##                # Loop over environment objects
+##                for env_point in env:
+##                    if (point[0] == env_point[0]) and (point[1] == env_point[1]):
+##                        # If sensor point is in the environment points list return True - I apologise to the processor
+##                        front = bot.get_front_point()
+##                        centre = bot.get_centre()
+##                        p1 = (front.x - centre.x, front.y - centre.y)
+##                        p2 = (point[1] - centre.x, point[0] - centre.y)
+##
+##                        atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
+##
+##                        if atan > 180:
+##                            atan = atan - 360
+##
+##                        atan = -atan
+##
+##                        print(atan)
+##
+##                        return atan
 
-        # Create blank mask
-        img = numpy.zeros((height, width), numpy.uint8)
+        angle = self.circle_sensor(bot, sensor)
 
-        # Get positions from bot to calculate tag offset
-        front = bot.get_front_point()
-        centre = bot.get_centre()
+        if not angle:
+            return False
 
-        # Calculate tag offset with respect to Y axis
-        a = numpy.array((front.x, front.y))
-        b = numpy.array((centre.x, centre.y))
-        dist = numpy.linalg.norm(a - b)
-
-        pointY = centre.y + dist
-
-        # Calculate angle between top of tag and Y axis
-        result = math.atan2(pointY - centre.y, centre.x - centre.x) + math.atan2(front.y - centre.y, front.x - centre.x)
-        angle = math.degrees(result)
-
-        # Calculate start and end angles for cone sensor
-        start_angle = angle - int(sensor.get_cone_angle() / 2) + sensor.get_angle_offset()
-        end_angle = start_angle + sensor.get_cone_angle()
-
-        # Add sensor to image
-        radius = sensor.get_radius()
-        cv2.ellipse(img, (centre.x, centre.y), (radius, radius), 0, start_angle, end_angle, 255) - 90 + self.__tag_offset
-
-        # Get all points in sensor range
-        sensor_points = numpy.transpose(numpy.where(img == 255))
-
-        # Re-create blank mask
-        img = numpy.zeros((height, width), numpy.uint8)
-
-        env_points = []
-        for env in self.__environment:
-            # Add circle for environment object
-            cv2.circle(img, env.get_position(), env.get_radius(), 255)
-
-            # Identify circle using mask
-            points = numpy.transpose(numpy.where(img == 255))
-            env_points.append(points)
-
-        for point in sensor_points:
-            # Loop over sensor points
-            for env in env_points:
-                # Loop over environment objects
-                for env_point in env:
-                    if (point[0] == env_point[0]) and (point[1] == env_point[1]):
-                        # If sensor point is in the environment points list return True - I apologise to the processor
-                        front = bot.get_front_point()
-                        centre = bot.get_centre()
-                        p1 = (front.x - centre.x, front.y - centre.y)
-                        p2 = (point[1] - centre.x, point[0] - centre.y)
-
-                        atan = math.degrees(math.atan2(p1[1], p1[0]) - math.atan2(p2[1], p2[0]))
-
-                        if atan > 180:
-                            atan = atan - 360
-
-                        atan = -atan
-
-                        print(atan)
-
-                        return atan
+        if abs(angle) <= (sensor.get_cone_angle() / 2):
+            return angle
 
         # Not in range of any environment objects
         return False
@@ -291,7 +303,7 @@ class Simulator():
         while self.__looping:
             #SIMULATE SHIT
 
-            print("Simulation")
+            #print("Simulation")
 
             start = time.time()
 
@@ -357,7 +369,7 @@ class Simulator():
 
             end = time.time()
 
-            print("Time: %f" % (end - start))
+            #print("Time: %f" % (end - start))
 
             self.__callback(data)
                 
